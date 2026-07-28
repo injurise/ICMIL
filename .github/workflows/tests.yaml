@@ -1,0 +1,31 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # The benchmark .h5 and checkpoint .pt artifacts are distributed with the
+        # supplement, not fetched in CI. Tests that need them skip cleanly when absent.
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -e ".[datagen]"
+          pip install pytest ruff
+
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Test
+        # Runs against synthetic fixtures: no artifacts, no GPU, no network.
+        run: pytest -q

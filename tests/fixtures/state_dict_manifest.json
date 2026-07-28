@@ -1,0 +1,556 @@
+{
+  "bag_encoder.linear_layer.bias": [
+    256
+  ],
+  "bag_encoder.linear_layer.weight": [
+    256,
+    1
+  ],
+  "bag_latent_init": [
+    25,
+    256
+  ],
+  "col_row_blocks.0.col_row.linear1.bias": [
+    1054
+  ],
+  "col_row_blocks.0.col_row.linear1.weight": [
+    1054,
+    256
+  ],
+  "col_row_blocks.0.col_row.linear2.bias": [
+    256
+  ],
+  "col_row_blocks.0.col_row.linear2.weight": [
+    256,
+    1054
+  ],
+  "col_row_blocks.0.col_row.norm1.bias": [
+    256
+  ],
+  "col_row_blocks.0.col_row.norm1.weight": [
+    256
+  ],
+  "col_row_blocks.0.col_row.norm2.bias": [
+    256
+  ],
+  "col_row_blocks.0.col_row.norm2.weight": [
+    256
+  ],
+  "col_row_blocks.0.col_row.norm3.bias": [
+    256
+  ],
+  "col_row_blocks.0.col_row.norm3.weight": [
+    256
+  ],
+  "col_row_blocks.0.col_row.self_attention_between_datapoints.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.0.col_row.self_attention_between_datapoints.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.0.col_row.self_attention_between_datapoints.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.0.col_row.self_attention_between_datapoints.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.0.col_row.self_attention_between_features.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.0.col_row.self_attention_between_features.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.0.col_row.self_attention_between_features.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.0.col_row.self_attention_between_features.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.1.col_row.linear1.bias": [
+    1054
+  ],
+  "col_row_blocks.1.col_row.linear1.weight": [
+    1054,
+    256
+  ],
+  "col_row_blocks.1.col_row.linear2.bias": [
+    256
+  ],
+  "col_row_blocks.1.col_row.linear2.weight": [
+    256,
+    1054
+  ],
+  "col_row_blocks.1.col_row.norm1.bias": [
+    256
+  ],
+  "col_row_blocks.1.col_row.norm1.weight": [
+    256
+  ],
+  "col_row_blocks.1.col_row.norm2.bias": [
+    256
+  ],
+  "col_row_blocks.1.col_row.norm2.weight": [
+    256
+  ],
+  "col_row_blocks.1.col_row.norm3.bias": [
+    256
+  ],
+  "col_row_blocks.1.col_row.norm3.weight": [
+    256
+  ],
+  "col_row_blocks.1.col_row.self_attention_between_datapoints.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.1.col_row.self_attention_between_datapoints.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.1.col_row.self_attention_between_datapoints.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.1.col_row.self_attention_between_datapoints.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.1.col_row.self_attention_between_features.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.1.col_row.self_attention_between_features.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.1.col_row.self_attention_between_features.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.1.col_row.self_attention_between_features.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.2.col_row.linear1.bias": [
+    1054
+  ],
+  "col_row_blocks.2.col_row.linear1.weight": [
+    1054,
+    256
+  ],
+  "col_row_blocks.2.col_row.linear2.bias": [
+    256
+  ],
+  "col_row_blocks.2.col_row.linear2.weight": [
+    256,
+    1054
+  ],
+  "col_row_blocks.2.col_row.norm1.bias": [
+    256
+  ],
+  "col_row_blocks.2.col_row.norm1.weight": [
+    256
+  ],
+  "col_row_blocks.2.col_row.norm2.bias": [
+    256
+  ],
+  "col_row_blocks.2.col_row.norm2.weight": [
+    256
+  ],
+  "col_row_blocks.2.col_row.norm3.bias": [
+    256
+  ],
+  "col_row_blocks.2.col_row.norm3.weight": [
+    256
+  ],
+  "col_row_blocks.2.col_row.self_attention_between_datapoints.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.2.col_row.self_attention_between_datapoints.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.2.col_row.self_attention_between_datapoints.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.2.col_row.self_attention_between_datapoints.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.2.col_row.self_attention_between_features.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.2.col_row.self_attention_between_features.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.2.col_row.self_attention_between_features.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.2.col_row.self_attention_between_features.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.3.col_row.linear1.bias": [
+    1054
+  ],
+  "col_row_blocks.3.col_row.linear1.weight": [
+    1054,
+    256
+  ],
+  "col_row_blocks.3.col_row.linear2.bias": [
+    256
+  ],
+  "col_row_blocks.3.col_row.linear2.weight": [
+    256,
+    1054
+  ],
+  "col_row_blocks.3.col_row.norm1.bias": [
+    256
+  ],
+  "col_row_blocks.3.col_row.norm1.weight": [
+    256
+  ],
+  "col_row_blocks.3.col_row.norm2.bias": [
+    256
+  ],
+  "col_row_blocks.3.col_row.norm2.weight": [
+    256
+  ],
+  "col_row_blocks.3.col_row.norm3.bias": [
+    256
+  ],
+  "col_row_blocks.3.col_row.norm3.weight": [
+    256
+  ],
+  "col_row_blocks.3.col_row.self_attention_between_datapoints.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.3.col_row.self_attention_between_datapoints.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.3.col_row.self_attention_between_datapoints.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.3.col_row.self_attention_between_datapoints.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.3.col_row.self_attention_between_features.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.3.col_row.self_attention_between_features.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.3.col_row.self_attention_between_features.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.3.col_row.self_attention_between_features.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.4.col_row.linear1.bias": [
+    1054
+  ],
+  "col_row_blocks.4.col_row.linear1.weight": [
+    1054,
+    256
+  ],
+  "col_row_blocks.4.col_row.linear2.bias": [
+    256
+  ],
+  "col_row_blocks.4.col_row.linear2.weight": [
+    256,
+    1054
+  ],
+  "col_row_blocks.4.col_row.norm1.bias": [
+    256
+  ],
+  "col_row_blocks.4.col_row.norm1.weight": [
+    256
+  ],
+  "col_row_blocks.4.col_row.norm2.bias": [
+    256
+  ],
+  "col_row_blocks.4.col_row.norm2.weight": [
+    256
+  ],
+  "col_row_blocks.4.col_row.norm3.bias": [
+    256
+  ],
+  "col_row_blocks.4.col_row.norm3.weight": [
+    256
+  ],
+  "col_row_blocks.4.col_row.self_attention_between_datapoints.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.4.col_row.self_attention_between_datapoints.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.4.col_row.self_attention_between_datapoints.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.4.col_row.self_attention_between_datapoints.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.4.col_row.self_attention_between_features.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.4.col_row.self_attention_between_features.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.4.col_row.self_attention_between_features.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.4.col_row.self_attention_between_features.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.5.col_row.linear1.bias": [
+    1054
+  ],
+  "col_row_blocks.5.col_row.linear1.weight": [
+    1054,
+    256
+  ],
+  "col_row_blocks.5.col_row.linear2.bias": [
+    256
+  ],
+  "col_row_blocks.5.col_row.linear2.weight": [
+    256,
+    1054
+  ],
+  "col_row_blocks.5.col_row.norm1.bias": [
+    256
+  ],
+  "col_row_blocks.5.col_row.norm1.weight": [
+    256
+  ],
+  "col_row_blocks.5.col_row.norm2.bias": [
+    256
+  ],
+  "col_row_blocks.5.col_row.norm2.weight": [
+    256
+  ],
+  "col_row_blocks.5.col_row.norm3.bias": [
+    256
+  ],
+  "col_row_blocks.5.col_row.norm3.weight": [
+    256
+  ],
+  "col_row_blocks.5.col_row.self_attention_between_datapoints.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.5.col_row.self_attention_between_datapoints.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.5.col_row.self_attention_between_datapoints.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.5.col_row.self_attention_between_datapoints.v_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.5.col_row.self_attention_between_features.k_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.5.col_row.self_attention_between_features.out_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.5.col_row.self_attention_between_features.q_proj.weight": [
+    256,
+    256
+  ],
+  "col_row_blocks.5.col_row.self_attention_between_features.v_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.0.cross_attn.k_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.0.cross_attn.out_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.0.cross_attn.q_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.0.cross_attn.v_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.0.norm.bias": [
+    256
+  ],
+  "cross_attn_blocks.0.norm.weight": [
+    256
+  ],
+  "cross_attn_blocks.1.cross_attn.k_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.1.cross_attn.out_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.1.cross_attn.q_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.1.cross_attn.v_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.1.norm.bias": [
+    256
+  ],
+  "cross_attn_blocks.1.norm.weight": [
+    256
+  ],
+  "cross_attn_blocks.2.cross_attn.k_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.2.cross_attn.out_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.2.cross_attn.q_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.2.cross_attn.v_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.2.norm.bias": [
+    256
+  ],
+  "cross_attn_blocks.2.norm.weight": [
+    256
+  ],
+  "cross_attn_blocks.3.cross_attn.k_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.3.cross_attn.out_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.3.cross_attn.q_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.3.cross_attn.v_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.3.norm.bias": [
+    256
+  ],
+  "cross_attn_blocks.3.norm.weight": [
+    256
+  ],
+  "cross_attn_blocks.4.cross_attn.k_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.4.cross_attn.out_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.4.cross_attn.q_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.4.cross_attn.v_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.4.norm.bias": [
+    256
+  ],
+  "cross_attn_blocks.4.norm.weight": [
+    256
+  ],
+  "cross_attn_blocks.5.cross_attn.k_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.5.cross_attn.out_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.5.cross_attn.q_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.5.cross_attn.v_proj.weight": [
+    256,
+    256
+  ],
+  "cross_attn_blocks.5.norm.bias": [
+    256
+  ],
+  "cross_attn_blocks.5.norm.weight": [
+    256
+  ],
+  "decoder.linear1.bias": [
+    1054
+  ],
+  "decoder.linear1.weight": [
+    1054,
+    256
+  ],
+  "decoder.linear2.bias": [
+    2
+  ],
+  "decoder.linear2.weight": [
+    2,
+    1054
+  ],
+  "final_norm.bias": [
+    256
+  ],
+  "final_norm.weight": [
+    256
+  ],
+  "target_encoder.embedder.bias": [
+    256
+  ],
+  "target_encoder.embedder.weight": [
+    256,
+    1
+  ]
+}

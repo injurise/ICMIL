@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "icmil"
+version = "1.0.0"
+description = "In-Context Multiple-Instance Learning: reproduce the benchmark table for ICMIL and baselines."
+requires-python = ">=3.11,<3.14"
+# Everything needed to REPRODUCE the benchmark table from the shipped artifacts.
+# Evaluation reads pre-built .h5 files, so the raw-data pipeline (torchvision,
+# torchmil, pandas, ucimlrepo) is deliberately absent from the default install.
+dependencies = [
+  "torch>=2.5.1",
+  "numpy>=1.26.4",
+  "h5py>=3.11",
+  "scikit-learn>=1.5",
+  "tqdm>=4.66",
+  "schedulefree>=1.4.1",  # ABMIL / ACMIL baseline optimizer, and the trainer
+  "tabpfn>=2.2.1,<3",     # TabPFN-based baselines; downloads its weights on first use
+]
+
+[project.optional-dependencies]
+# Synthetic prior generation (icmil.datagen). Not needed to reproduce the table.
+datagen = ["tabicl==0.1.*", "scipy>=1.11"]
+
+[project.scripts]
+icmil-reproduce = "icmil.reproduce:main"
+icmil-train = "icmil.train:main"
+icmil-datagen = "icmil.datagen.generate:main"
+
+[dependency-groups]
+dev = ["pytest>=8.3.5", "ruff>=0.8.0"]
+
+[tool.setuptools.packages.find]
+include = ["icmil", "icmil.*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 119
