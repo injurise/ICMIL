@@ -33,10 +33,6 @@ logger = logging.getLogger(__name__)
 class SimplifiedHierarchicalMILPriorGenerator:
     """Simplified base class for bag-structured data generation.
 
-    A lighter alternative to BaggedPriorGenerator — no noise injection,
-    no feature source.  Subclasses implement ``_generate_labels_and_features``
-    which returns both the feature tensor and bag-level labels.
-
     Parameters
     ----------
     max_features : int

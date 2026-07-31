@@ -1,4 +1,4 @@
-"""Attention primitives for the ICMIL model (copied verbatim from the training code)."""
+"""Attention primitives for the ICMIL model."""
 
 import torch
 import torch.nn.functional as F

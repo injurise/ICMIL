@@ -1,9 +1,4 @@
-"""The ICMIL architecture, its loader, and the shipped checkpoints.
-
-The architecture is frozen against a committed name->shape manifest: the released
-weights only load into exactly this model, so an accidental change to the layer stack
-should fail here rather than at load time on someone else's machine.
-"""
+"""The ICMIL architecture, its loader, and the shipped checkpoints."""
 
 from __future__ import annotations
 

@@ -1,9 +1,4 @@
-"""The metric and aggregation code behind every cell of the benchmark table.
-
-The subtle contracts here are about *absence*: a metric that is undefined on a split
-must be missing rather than NaN, and a quantity with nothing to average over must be
-NaN rather than zero. Both are easy to "fix" into silently wrong table cells.
-"""
+"""The metric and aggregation code behind every cell of the benchmark table."""
 
 from __future__ import annotations
 

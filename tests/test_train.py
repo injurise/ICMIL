@@ -1,11 +1,4 @@
-"""The trainer: it learns, and its checkpoints are loadable and clean.
-
-Deliberately not tested here: that this reproduces the released weights. That took
-8000 epochs over hundreds of GB. What these tests pin is that the loop is wired
-correctly and that a checkpoint written here is a first-class citizen — loadable
-through the same public API as the shipped ones, and carrying nothing about the
-machine it was trained on.
-"""
+"""The trainer: it learns, and its checkpoints are loadable and clean."""
 
 from __future__ import annotations
 

@@ -1,8 +1,7 @@
 """TCGA slide-level benchmark task (LUAD vs LUSC): reads frozen splits.
 
 Bags are whole-slide images, instances are patch embeddings from a pathology
-foundation model. The H5 is self-identifying via its ``variant`` attribute, so
-this one class serves any fixed TCGA benchmark built the same way.
+foundation model.
 """
 
 from __future__ import annotations

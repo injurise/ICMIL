@@ -1,14 +1,4 @@
-"""Build benchmark tasks by name.
-
-Task-class imports are deferred into each branch of :func:`create_benchmark_tasks`
-so that importing this module does not eagerly pull every task's dependencies —
-only the families actually requested get imported.
-
-Unlike the research harness this was extracted from, a requested task that cannot
-be built is an **error**, not a warning: every task in this repository has a
-shipped ``.h5``, so a missing file or a mistyped name means the resulting table
-would silently be missing a column.
-"""
+"""Build benchmark tasks by name."""
 
 from __future__ import annotations
 

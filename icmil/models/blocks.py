@@ -1,4 +1,4 @@
-"""Shared building blocks for the ICMIL model (copied verbatim from the training code).
+"""Shared building blocks for the ICMIL model.
 
 Contains the per-feature embedder, label embedder, decoder, the column/row
 TransformerEncoderLayer, and the ``memory_chunking`` helper it uses.

@@ -1,10 +1,4 @@
-"""Shared fixtures.
-
-Most tests run against a tiny synthetic ``.h5`` built here rather than the shipped
-benchmarks, so the suite works on a clean checkout with no data and finishes in
-seconds. Tests that genuinely need the real artifacts are marked ``artifacts`` and
-skip when they are absent.
-"""
+"""Shared fixtures."""
 
 from __future__ import annotations
 

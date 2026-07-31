@@ -1,8 +1,4 @@
-"""Frozen TabPFN v2 backbone used by the TabPFN-based MIL baselines.
-
-Extracted from the training code (only the frozen in-context classifier is
-needed for the baselines; the trainable aggregator variants are omitted).
-"""
+"""Frozen TabPFN v2 backbone used by the TabPFN-based MIL baselines."""
 
 import torch
 from tabpfn.model.loading import load_model_criterion_config

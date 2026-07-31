@@ -1,14 +1,8 @@
 """Configuration for synthetic prior generation.
 
-Plain frozen dataclasses with a JSON round-trip — no configuration framework. The
-SCM hyper-parameter maps are nested and typed, so keeping them as Python literals
-keeps them greppable and diffable; ``--dry-run`` prints the fully resolved config
-for anyone who would rather read JSON.
-
 :data:`PAPER_CONFIG` is the recipe the released ICMIL checkpoints were trained on:
 three prior "arms" generated separately and then mixed during training according
-to :data:`PAPER_TRAIN_WEIGHTS`. Both live here so the trainer's documented command
-and the generator cannot drift apart.
+to :data:`PAPER_TRAIN_WEIGHTS`.
 """
 
 from __future__ import annotations
