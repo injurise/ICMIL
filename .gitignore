@@ -1,5 +1,4 @@
-# Benchmark datasets and model checkpoints ship WITH this repository — they are
-# deliberately tracked, not ignored. Only reproduction outputs are transient.
+# Benchmark datasets and model checkpoints
 results/
 
 # Python

@@ -12,7 +12,6 @@ import numpy as np
 import torch
 
 
-# Type for strategy specifications: fixed string, uniform list, or weighted dict
 StrategySpec = str | list[str] | dict[str, float]
 
 
@@ -29,7 +28,6 @@ def _sample_strategy(strategy: StrategySpec) -> str:
     return str(np.random.choice(keys, p=weights))
 
 
-# Available activation functions (shared by SCM and Hierarchical generators)
 ACTIVATIONS = {
     "tanh": torch.nn.Tanh,
     "relu": torch.nn.ReLU,

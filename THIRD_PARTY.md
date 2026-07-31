@@ -11,10 +11,6 @@ by the `abmil_refit` and `acmil` baselines and by the prior generator's
 > M. Ilse, J. M. Tomczak, M. Welling. *Attention-based Deep Multiple Instance
 > Learning.* ICML 2018. https://arxiv.org/abs/1802.04712
 
-Written from the published equations (Eq. 8 and Eq. 9); layer names, shapes and
-construction order follow the implementation these baselines were originally run
-against, so seeded runs reproduce identical parameters.
-
 **Attention-Challenging MIL** — `icmil/baselines/acmil_baseline.py` ports the ACMIL-GA
 variant (multiple branch attention, stochastic top-K masking, attention-diversity
 loss), rewritten to process a mini-batch of bags and to expose the same

@@ -3,8 +3,7 @@
     python -m icmil.train --data-dir workdir/priors --out checkpoints/my-icmil.pt
 
 With no flags this builds the released architecture and trains it with settings in
-the range that produced the shipped checkpoints. Those checkpoints are the product
-of 8000 epochs over a corpus that takes a cluster to generate.
+the range that produced the released checkpoints.
 """
 
 from __future__ import annotations

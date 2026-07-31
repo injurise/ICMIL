@@ -7,10 +7,6 @@ train/test split of bags.
     python -m icmil.datagen.generate --out-dir workdir/priors
     python -m icmil.datagen.generate --arm joint_mlp_long_curr --num-batches 100 --num-workers 8
     python -m icmil.datagen.generate --dry-run          # print the resolved config
-
-The full recipe is 3 arms x 40 000 batches and takes a cluster to produce; the
-released checkpoints were trained on exactly that. For inspection, override
-``--num-batches`` and generate something small.
 """
 
 from __future__ import annotations
@@ -100,13 +96,7 @@ def _generate_batch(
     max_train_size: float,
     max_instance_classes: int | None,
 ) -> tuple[np.ndarray, ...]:
-    """Generate one batch. Runs in a worker process, so it takes only picklable args.
-
-    All three RNGs are seeded together and this is load-bearing: the priors reject
-    degenerate (single-label) datasets via ``random.random()`` and resample, which
-    advances the NumPy and torch streams a variable number of times. Seeding only
-    two of the three would make a given ``seed`` non-reproducible.
-    """
+    """Generate one batch. Runs in a worker process, so it takes only picklable args."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -191,13 +181,7 @@ def _generate_sequential(cfg: GenConfig, dataset, sampler, writer: BaggedPriorH5
 
 
 def _generate_parallel(cfg: GenConfig, dataset, sampler, writer: BaggedPriorH5Writer, prior_kwargs: dict) -> None:
-    """Generate in worker processes.
-
-    Every batch's shape is decided up front in the parent, so the parent's RNG
-    stream — and therefore the set of batches produced — does not depend on how many
-    workers are used or on the order in which they finish. Each worker then gets a
-    seed derived from the parent's, making individual batches reproducible too.
-    """
+    """Generate in worker processes."""
     assignments: list[tuple[int, int, int | None]] = []
     for batch_idx in range(cfg.num_batches):
         params = dataset.sample_params()
@@ -228,11 +212,7 @@ def _generate_parallel(cfg: GenConfig, dataset, sampler, writer: BaggedPriorH5Wr
 
 
 def _pin_thread_counts() -> None:
-    """Keep BLAS single-threaded.
-
-    Each worker otherwise tries to use every core, and N workers oversubscribing the
-    machine is far slower than N single-threaded ones.
-    """
+    """Keep BLAS single-threaded."""
     for var in (
         "OMP_NUM_THREADS",
         "MKL_NUM_THREADS",

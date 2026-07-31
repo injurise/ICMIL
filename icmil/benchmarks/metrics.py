@@ -1,11 +1,4 @@
-"""Benchmark task protocol and shared metrics for MIL in-context evaluation.
-
-Everything here is task-agnostic: the :class:`BenchmarkTask` protocol, the
-per-split metric computation, and the aggregation used to turn per-split (and
-per-model-seed) measurements into the mean +/- SEM cells of the benchmark table.
-Concrete tasks live in the sibling modules and are wired up by
-:mod:`icmil.benchmarks.registry`.
-"""
+"""Benchmark task protocol and shared metrics for MIL in-context evaluation."""
 
 from __future__ import annotations
 
@@ -44,10 +37,8 @@ class BenchmarkTask(Protocol):
 def _pad_features(X: np.ndarray, max_features: int | None) -> np.ndarray:
     """Pad last dimension of X to ``max_features`` with zeros.
 
-    ``max_features=None`` is a no-op — used for baselines whose models have
-    no fixed input width (TabPFN / sklearn / ABMIL baselines) and would
-    otherwise see harness-padded zero columns that distort downstream
-    summary statistics or feature truncation.
+    ``max_features=None`` is a no-op used for baselines whose models have
+    no fixed input width (TabPFN / sklearn / ABMIL baselines).
     """
     if max_features is None:
         return X
@@ -63,8 +54,7 @@ def _compute_roc_auc(y_true: np.ndarray, probs: np.ndarray) -> float | None:
 
     Handles both binary and multiclass cases. Returns None when fewer than
     two classes are present in y_true or when the number of present classes
-    doesn't match the number of probability columns (multiclass with missing
-    classes would require renormalization that distorts rankings).
+    doesn't match the number of probability columns.
     """
     unique_classes = np.unique(y_true)
     if len(unique_classes) < 2:
@@ -87,8 +77,6 @@ def compute_split_metrics(
     y_train: np.ndarray,
 ) -> dict[str, float]:
     """Compute classification metrics for a single train/test split.
-
-    Shared by both synthetic and benchmark evaluation paths.
 
     Args:
         y_test: Ground-truth labels for test set, shape (n_test,).
@@ -148,9 +136,8 @@ def _summarize_timings(timings: list[dict[str, float | int]]) -> dict[str, float
 
     Each input dict carries ``elapsed_s`` plus shape stats (``n_train_bags``,
     ``n_test_bags``, ``bag_size``, ``n_features``). Returns aggregate timing
-    keys (``time_total_s``, ``time_per_split_s_mean``, ``time_per_split_s_std``,
-    ``time_per_test_bag_s``), the mean shape stats, and the raw list under
-    ``per_split_timings`` for post-hoc analysis.
+    keys, the mean shape stats, and the raw list under ``per_split_timings`` 
+    for post-hoc analysis.
     """
     out: dict[str, float | int | list] = {}
     if not timings:

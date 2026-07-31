@@ -6,13 +6,6 @@ embeddings into the latents and (b) column attention across feature groups plus
 row attention across bags. Row attention carries the in-context split: context
 bags attend among themselves, query bags attend only to context. The bag label
 token is read out of the final latent stack and decoded to class logits.
-
-One detail worth knowing when comparing against the training code: ``final_norm``
-is a LayerNorm applied to the bag label token just before the decoder. It is a
-trained, non-identity layer present in every released checkpoint
-(``final_norm.{weight,bias}``), so it is part of the architecture — the model will
-not load a checkpoint strictly without it. Placement is output-equivalent to
-normalising the whole latent stack, since only the label token is decoded.
 """
 
 from __future__ import annotations

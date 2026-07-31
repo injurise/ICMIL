@@ -1,8 +1,4 @@
-"""The reproduction pipeline: task construction, model shape, CLI, and the table.
-
-Runs against the synthetic fixtures, so this exercises the whole wiring — including
-the end-to-end path — without the shipped artifacts.
-"""
+"""The reproduction pipeline: task construction, model shape, CLI, and the table."""
 
 from __future__ import annotations
 

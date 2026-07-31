@@ -24,11 +24,7 @@ VARIANTS = ("smil", "four_bags", "pos_neg", "adjacent_pairs")
 
 
 class MNISTXAITask:
-    """Iterate over the frozen draws of a single MNIST-XAI variant.
-
-    The bag count is read from the file's ``num_bags`` attribute and appended to
-    the task name, so a table column always states the size it was measured at.
-    """
+    """Iterate over the frozen draws of a single MNIST-XAI variant."""
 
     VARIANTS = VARIANTS
 

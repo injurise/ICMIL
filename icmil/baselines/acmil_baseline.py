@@ -1,6 +1,6 @@
 """ACMIL baseline (Attention-Challenging Multiple Instance Learning).
 
-Port of ACMIL-GA (gated-attention variant) from Zhang et al. 2023
+ACMIL-GA (gated-attention variant) from Zhang et al. 2023
 ("Attention-Challenging Multiple Instance Learning for Whole Slide Image
 Classification", https://arxiv.org/abs/2311.07125, repo
 https://github.com/dazhangyu123/ACMIL), wrapped as a per-split MIL baseline
@@ -21,11 +21,6 @@ ACMIL extends gated-attention ABMIL with three "attention-challenging" tricks:
    cross-entropy on the per-branch logits (only when ``n_token > 1``) and
    ``diff_loss`` is the mean pairwise cosine similarity of the branch attention
    maps (a diversity penalty pushing branches to attend to different instances).
-
-The model here is a **batched** port: the original processes one bag at a time,
-whereas :class:`ACMILGatedAttention` takes a mini-batch of bags ``(B, M, F)`` so
-training over the bag axis is vectorized. Masking is gated on ``self.training``
-so validation-CE and test predictions are deterministic (masking off).
 
 HP selection mirrors :class:`~icmil.baselines.abmil_baseline.ABMILRefitBaseline`
 exactly: bag-level 5-fold CV over an ``(lr, wd, dropout)`` grid scored by mean
@@ -62,15 +57,6 @@ HPCombo = tuple[float, float, float]
 
 class ACMILGatedAttention(nn.Module):
     """Batched ACMIL-GA: dim-reduction -> multi-branch gated attention -> heads.
-
-    Faithful to ``ACMIL_GA`` / ``Attention_Gated`` in the reference repo, but
-    with a leading bag-batch dimension so a mini-batch of bags is processed at
-    once. ``forward`` returns ``(sub_logits, slide_logits, attn)`` where
-
-    * ``sub_logits`` : ``(B, n_token, num_classes)`` per-branch logits,
-    * ``slide_logits`` : ``(B, num_classes)`` bag logits (mean-attention pool),
-    * ``attn`` : ``(B, n_token, M)`` per-branch attention **after** softmax
-      (used for the diversity loss).
 
     Stochastic top-K masking is applied only when ``self.training`` is ``True``.
     """
@@ -115,12 +101,7 @@ class ACMILGatedAttention(nn.Module):
         return a.transpose(-2, -1)  # (B, K, M)
 
     def _apply_stochastic_mask(self, a: torch.Tensor) -> torch.Tensor:
-        """Randomly mask a subset of each branch's top-K attention instances.
-
-        ``a``: ``(B, K, M)`` attention logits. Returns the masked logits (only
-        called during training). Mirrors the reference top-K/``mask_drop`` logic
-        vectorized over the bag axis.
-        """
+        """Randomly mask a subset of each branch's top-K attention instances."""
         b, k, m = a.shape
         n_masked = min(self.n_masked_patch, m)
         n_drop = int(n_masked * self.mask_drop)
@@ -174,14 +155,7 @@ def acmil_composite_loss(
     attn: torch.Tensor,
     y: torch.Tensor,
 ) -> torch.Tensor:
-    """ACMIL training loss: ``bag_ce + branch_ce + diff_loss``.
-
-    ``sub_logits`` ``(B, K, C)``, ``slide_logits`` ``(B, C)``, ``attn`` ``(B, K, M)``
-    (softmaxed branch attention), ``y`` ``(B,)``. The branch CE and diversity loss
-    are only added when ``K > 1`` (matching the reference). ``diff_loss`` is the
-    mean pairwise cosine similarity of the softmaxed branch attention maps,
-    matching the reference.
-    """
+    """ACMIL training loss: ``bag_ce + branch_ce + diff_loss``."""
     b, k, c = sub_logits.shape
     loss_bag = F.cross_entropy(slide_logits, y)
     if k <= 1:
@@ -199,18 +173,7 @@ def acmil_composite_loss(
 
 
 class ACMILRefitBaseline(nn.Module):
-    """ACMIL-GA with K-fold CV for HP scoring, then a single refit on full X_train.
-
-    Structurally mirrors
-    :class:`icmil.baselines.abmil_baseline.ABMILRefitBaseline`
-    (bag-level stratified CV over ``(lr, wd, dropout)`` with per-fold early
-    stopping on val bag-CE, then refit for ``e_bar`` epochs), but the training
-    step uses ACMIL's composite loss and the model applies stochastic masking.
-
-    The wrapper's ``train()`` is a no-op so the evaluation loop can't flip it into
-    train mode; the *inner* :class:`ACMILGatedAttention` toggles train/eval
-    normally to enable/disable masking.
-    """
+    """ACMIL-GA with K-fold CV for HP scoring, then a single refit on full X_train."""
 
     def __init__(
         self,

@@ -1,6 +1,6 @@
 """Attention-based MIL pooling.
 
-An independent implementation of the attention pooling introduced by
+An implementation of the attention pooling introduced by
 
     M. Ilse, J. M. Tomczak and M. Welling,
     "Attention-based Deep Multiple Instance Learning", ICML 2018.
@@ -12,15 +12,6 @@ functions are Eq. 8 and Eq. 9 of that paper:
 
 * :class:`GlobalAttention` (Eq. 8)        ``s_i = w^T tanh(V h_i)``
 * :class:`GlobalGatedAttention` (Eq. 9)   ``s_i = w^T (tanh(V h_i) * sigm(U h_i))``
-
-The gated variant multiplies the ``tanh`` branch elementwise by a ``sigmoid``
-gate, which lets the network suppress instances that ``tanh`` alone would score
-highly simply because it is near-linear in its mid-range.
-
-Used by the ABMIL and ACMIL baselines, and by the synthetic prior generator's
-``embedding_abmil`` bag-label rule. Layer names, shapes and construction order
-match the reference implementation these baselines were originally run against,
-so a fixed seed yields identical parameters and identical outputs.
 """
 
 from __future__ import annotations

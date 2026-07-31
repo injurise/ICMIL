@@ -59,12 +59,7 @@ def _strip_trailing_zeros(X: torch.Tensor) -> torch.Tensor:
 
 
 class ABMIL(nn.Module):
-    """Attention-based MIL: patch-embed MLP -> gated attention pooling -> classifier.
-
-    The standard ABMIL architecture of Ilse et al. (2018), written out here so
-    the forward signature matches the rest of the baselines and weight init /
-    dropout placement stay under our control.
-    """
+    """Attention-based MIL: patch-embed MLP -> gated attention pooling -> classifier."""
 
     def __init__(
         self,

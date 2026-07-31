@@ -1,7 +1,5 @@
 """TabPFN-based MIL baselines + a mean-pool logistic regression baseline.
 
-The ABMIL and ACMIL baselines live in the sibling modules of this package.
-
 Baseline 1 — TabPFNConcatBaseline / TabPFNSubsampleBaseline:
     Frozen TabPFN v2 backbone over flattened bags. Two sibling classes that
     share machinery via a private base, exposing only the kwargs that apply
@@ -51,8 +49,7 @@ def _bag_level_stratified_folds(y: np.ndarray, n_splits: int, seed: int) -> list
     pairs index the bag axis. ``n_splits`` is clamped by the smallest class
     count (sklearn's hard requirement) with a floor of 2. Returns ``[]``
     when stratified CV is infeasible (single class, or any class with <2
-    samples) so callers can branch on ``if not folds:`` for the small-prompt
-    fallback.
+    samples).
     """
     y = np.asarray(y)
     classes, counts = np.unique(y, return_counts=True)
@@ -164,12 +161,7 @@ def _run_tabpfn_per_batch(
 
 
 class _TabPFNBaselineBase(nn.Module):
-    """Shared internals for the TabPFN MIL baselines.
-
-    Concrete subclasses pin ``strategy`` via class attribute and expose only
-    the kwargs that apply to that variant. Trailing zero-padded feature
-    columns are stripped before sizing so the budget is spent on real signal.
-    """
+    """Shared internals for the TabPFN MIL baselines."""
 
     strategy: Literal["concat", "subsample"]
 
@@ -307,7 +299,7 @@ class TabPFNConcatBaseline(_TabPFNBaselineBase):
     """TabPFN MIL baseline — concat strategy.
 
     Flattens each bag in original instance order and truncates the resulting
-    flat vector at ``max_tabpfn_features``. Single view, no aggregation.
+    flat vector at ``max_tabpfn_features``.
     """
 
     strategy: Literal["concat", "subsample"] = "concat"
@@ -374,8 +366,7 @@ class MeanLogRegBaseline(nn.Module):
     ``LogisticRegressionCV`` (or plain ``LogisticRegression`` when a class
     has fewer than two samples) on the training bags and predicts on test bags.
     CV fold count is capped by the smallest per-class count so stratified splits
-    stay valid on small MIL prompts. No trainable parameters — fitting happens
-    inside each forward call.
+    stay valid on small MIL prompts.
     """
 
     def __init__(self, max_classes: int = 2, max_iter: int = 1000, seed: int = 0) -> None:
@@ -448,8 +439,7 @@ class SVMSummBaseline(nn.Module):
     Per-bag summary statistics (sum, mean, median, min, max, stdev),
     classified by a scikit-learn ``SVC(kernel='rbf', probability=True)``
     whose ``C`` is selected by stratified K-fold ``GridSearchCV`` per
-    forward call. Probabilities come from sklearn's internal Platt scaling.
-    No trainable PyTorch parameters — fitting happens inside ``forward``.
+    forward call.
 
     Two evaluation variants, selected by ``mode``:
 
@@ -461,10 +451,8 @@ class SVMSummBaseline(nn.Module):
       indices, and per-fold ``predict_proba`` outputs are averaged on
       ``X_test``.
 
-    Inner CV uses :func:`_bag_level_stratified_folds` (fold count clamped
-    by smallest class count). When stratified CV is infeasible — fewer
-    than two classes or a class with <2 samples — the search is skipped
-    and a default ``C=1`` SVC is fit on the full ``X_train``.
+    When stratified CV is infeasible, the search is skipped and a default 
+    ``C=1`` SVC is fit on the full ``X_train``.
     """
 
     STATS: tuple[str, ...] = ("sum", "mean", "median", "min", "max", "std")
@@ -571,10 +559,6 @@ class ClusterTabPFNBaseline(nn.Module):
     represented by the (I_n/|I_{n,k}|)-scaled sum of its cluster-k instances
     (equivalent to I_n x cluster-k mean). TabPFN is called K times; the K
     per-cluster logit sets are averaged to give the final prediction.
-
-    No trainable parameters — K-means and optional PCA are fit inside each
-    ``forward`` call on the training split, like all other sklearn-backed
-    baselines in this module.
     """
 
     def __init__(

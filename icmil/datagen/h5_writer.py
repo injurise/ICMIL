@@ -1,6 +1,6 @@
 """HDF5 writer for the synthetic prior corpus.
 
-Defines the on-disk format that :mod:`icmil.datagen.h5_dataset` reads back.
+Defines the on-disk format that :mod:`icmil.datagen.h5_dataset` reads.
 """
 
 import json
@@ -174,8 +174,7 @@ class BaggedPriorH5Writer:
     ) -> None:
         """Append data (numpy arrays) to the current batch group.
 
-        Same as :meth:`append_batch` but accepts pre-converted numpy arrays,
-        avoiding redundant ``.cpu().numpy()`` calls when data is already on CPU.
+        Same as :meth:`append_batch` but accepts pre-converted numpy arrays.
 
         Args:
             X: Features, shape ``(batch_size, n_bags, bag_size, max_features)``.

@@ -1,11 +1,4 @@
-"""Load a trained ICMIL model for in-context inference.
-
-The three released checkpoints were all trained with the hyper-parameters in
-:data:`ICMIL_ARCH`, which is therefore the fallback architecture when a
-checkpoint does not describe itself. Checkpoints written by :mod:`icmil.train`
-carry their own ``arch`` dict and are loaded with that instead, so a model you
-train yourself goes through the same public API.
-"""
+"""Load a trained ICMIL model for in-context inference."""
 
 from __future__ import annotations
 
@@ -36,7 +29,7 @@ class ICMILInference(nn.Module):
     """Inference-only wrapper exposing the in-context interface.
 
     Given labelled context bags ``(X_train, y_train)`` and query bags ``X_test``,
-    returns query logits in a single forward pass — no per-dataset training.
+    returns query logits in a single forward pass.
     """
 
     def __init__(self, model: nn.Module) -> None:
@@ -49,7 +42,7 @@ class ICMILInference(nn.Module):
 
 
 def build_icmil(arch: dict | None = None) -> nn.Module:
-    """Construct an untrained ICMIL model (defaults to the released architecture)."""
+    """Construct an untrained ICMIL model."""
     from icmil.models.architecture import ICMIL
 
     return ICMIL(**(ICMIL_ARCH if arch is None else arch))
@@ -90,7 +83,5 @@ def load_icmil(
         raise KeyError(f"{ckpt_path} has no 'model_state_dict' key; found {sorted(state)}")
 
     model = build_icmil(state.get("arch")).to(device)
-    # Strict on purpose: the released weights include `final_norm`, and a silent
-    # partial load would produce plausible-looking but wrong numbers.
     model.load_state_dict(state["model_state_dict"], strict=True)
     return ICMILInference(model).to(device)

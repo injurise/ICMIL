@@ -1,17 +1,10 @@
-"""Locate the benchmark datasets and model checkpoints that ship with this repo.
-
-Both live in the repository itself — ``datasets/`` and ``checkpoints/`` next to
-this package — so reproduction needs no network access and no credentials.
+"""Locate the benchmark datasets and model checkpoints.
 
 Resolution order for each kind of artifact:
 
 1. an explicit ``source`` directory passed by the caller (``--data`` / ``--models``),
 2. the ``ICMIL_DATA_DIR`` / ``ICMIL_CKPT_DIR`` environment variables,
 3. the in-repo defaults.
-
-Step 2 is what makes a non-editable install work: once the package is copied into
-``site-packages`` there is no ``datasets/`` beside it, so the directory has to be
-pointed at explicitly.
 """
 
 from __future__ import annotations

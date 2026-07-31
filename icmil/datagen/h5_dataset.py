@@ -1,9 +1,8 @@
 """Readers for the synthetic prior H5 files written by :mod:`icmil.datagen.generate`.
 
 ``BaggedPriorH5Dataset`` streams one prior file; ``MultiPriorH5Dataset`` mixes several
-according to per-arm weights, which is how ICMIL was trained. Both hand out whole
-pre-batched groups rather than individual samples, and both preserve batch order when the
-file carries a curriculum — shuffling would defeat the curriculum's purpose.
+according to per-arm weights. Both hand out whole pre-batched groups rather than 
+individual samples, and both preserve batch order when the file carries a curriculum.
 """
 
 import json
@@ -24,9 +23,7 @@ def _passthrough_collate(x):
 class BaggedPriorH5Dataset(Dataset):
     """Simple Map-style dataset for loading pre-generated HDF5 data.
 
-    Each index maps to one batch group ``batch_{idx}``. The training loop
-    controls which indices to load via epoch and step - no complex state
-    tracking needed.
+    Each index maps to one batch group ``batch_{idx}``.
 
     Args:
         filename: Path to the HDF5 file.
@@ -111,10 +108,6 @@ class BaggedPriorH5Dataset(Dataset):
     ) -> DataLoader:
         """Create a DataLoader for a specific epoch.
 
-        This is the main interface for training. Each epoch loads a different
-        slice of data based on the epoch number; each step yields one full
-        generated batch.
-
         Args:
             epoch: Current epoch number (0-indexed).
             steps_per_epoch: Number of batches to load this epoch.
@@ -162,8 +155,7 @@ class MultiPriorH5Dataset(Dataset):
     """Training dataset that mixes multiple per-prior H5 files at training time.
 
     Each epoch, a prior is sampled based on weights. The selected prior's
-    BaggedPriorH5Dataset serves that epoch's data. This decouples data
-    generation from prior mixing policy.
+    BaggedPriorH5Dataset serves that epoch's data.
 
     Args:
         prior_dir: Directory containing per-prior .h5 files.

@@ -12,8 +12,7 @@ ICMIL, across the three trained seeds; for a baseline, across ``--n-seeds``
 random seeds. Within a run the score is the mean over the task's frozen splits.
 
 Alongside the table this writes ``results.json`` (every metric at full
-precision) and ``run_meta.json`` (versions, device, artifact hashes) — the
-latter is what makes a reported number checkable later.
+precision) and ``run_meta.json`` (versions, device, artifact hashes).
 """
 
 from __future__ import annotations
@@ -202,10 +201,9 @@ def evaluate(
 def _write_table(all_results: dict, output_dir: Path, n_runs: dict[str, int]) -> None:
     """Write the AUROC markdown table (mean ± SEM).
 
-    For a row with several runs the ± is the SEM **across runs** — the quantity
-    the paper reports. A row with a single run has no cross-run spread, so its ±
-    is the SEM across the task's splits instead: a different, generally larger
-    quantity. Those rows are marked so the two are never read as comparable.
+    For a row with several runs the ± is the SEM **across runs**. A row with 
+    a single run has no cross-run spread, so its ± is the SEM across the 
+    task's splits instead.
     """
     metric = "roc_auc"
     task_names: list[str] = []
@@ -258,7 +256,7 @@ def _write_run_meta(
     timings: dict,
     dataset_paths: dict[str, str],
 ) -> None:
-    """Record everything needed to interpret — or challenge — these numbers later."""
+    """Record metadata."""
     import hashlib
     import platform
     from importlib.metadata import PackageNotFoundError, version

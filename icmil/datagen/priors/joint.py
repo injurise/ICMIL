@@ -38,8 +38,7 @@ class JointMILPriorGenerator(SimplifiedHierarchicalMILPriorGenerator):
         within each bag *after* generation (parent's `_shuffle_instances=True`),
         which forces the learner to be permutation-invariant by exposing it to
         many orderings of the same bag mapped to one fixed label. The labels
-        are therefore effectively the order-averaged target of f_S — this is
-        intentional and matches the standard joint-prior design.
+        are therefore effectively the order-averaged target of f_S.
 
     Parameters
     ----------
@@ -208,10 +207,7 @@ class JointMILPriorGenerator(SimplifiedHierarchicalMILPriorGenerator):
         """Apply the reg2cls feature pipeline per-instance, then re-flatten.
 
         Reshapes (n_bags, bag_size * n_features) -> (n_bags * bag_size, n_features)
-        so each instance is a row, applies the standard reg2cls processing
-        (categorical-ization, outlier removal, standard scaling, column
-        permutation — same column permutation across all instances), then
-        reshapes back.
+        so each instance is a row, applies the standard reg2cls processing.
         """
         n_bags = X_flat.shape[0]
         per_instance = X_flat.reshape(n_bags * bag_size, n_features)

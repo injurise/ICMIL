@@ -1,9 +1,4 @@
-"""Wires a parameter sampler to a prior generator.
-
-``BaggedPriorDataset`` is what a generation run actually calls: ``sample_params()``
-draws the shape and hyper-parameters of one synthetic dataset, and ``get_batch()``
-realises it. Two priors ship — see :mod:`icmil.datagen.config` for the recipes.
-"""
+"""Wires a parameter sampler to a prior generator."""
 
 from __future__ import annotations
 

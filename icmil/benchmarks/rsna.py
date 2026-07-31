@@ -18,12 +18,7 @@ import numpy as np
 
 
 class RSNAMILDrawsTask:
-    """Iterate over the frozen draws of the RSNA-ICH benchmark.
-
-    The task name is reconstructed from the H5's own ``features`` and
-    ``n_train_bags`` attributes, so it reports the benchmark it actually read
-    rather than whatever the caller assumed.
-    """
+    """Iterate over the frozen draws of the RSNA-ICH benchmark."""
 
     def __init__(self, h5_path: str | Path, default_features: str = "resnet50", name_prefix: str = "rsna_ich") -> None:
         self._h5_path = Path(h5_path)
