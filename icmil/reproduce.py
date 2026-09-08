@@ -3,7 +3,7 @@
 Usage:
     python -m icmil.reproduce                                   # full table
     python -m icmil.reproduce --tasks uci_musk1                 # one task
-    python -m icmil.reproduce --baselines mean_logreg,abmil_refit
+    python -m icmil.reproduce --baselines mean_logreg,abmil
     python -m icmil.reproduce --baselines none --icmil-seeds c5trd795
 
 Rows are models, columns are tasks, cells are AUROC as ``mean ± SEM``. Each row
@@ -57,18 +57,19 @@ TASKS: list[str] = [
 BASELINE_SPECS: dict[str, dict] = {
     "mean_logreg": dict(max_classes=4),
     "svm_summ": dict(max_classes=4, mode="refit"),
-    "abmil_refit": dict(
-        max_classes=4,
-        embed_dim=256,
+    "abmil": dict(
+        max_classes=2,
+        embed_dim=500,
         attn_dim=128,
         num_fc_layers=1,
+        dropout=0.0,
         gate=True,
+        lr_grid=(0.01, 0.005, 0.001, 0.0005, 0.0001),
+        wd_grid=(0.0, 0.0001, 0.0005),
         epochs=200,
-        batch_size=32,
-        warmup_steps=20,
-        n_cv_splits=5,
         patience=20,
-        min_delta=1e-4,
+        batch_size=None,
+        val_fraction=0.1,
     ),
     "acmil": dict(
         max_classes=4,
@@ -79,10 +80,26 @@ BASELINE_SPECS: dict[str, dict] = {
         mask_drop=0.6,
         epochs=200,
         batch_size=32,
-        warmup_steps=20,
-        n_cv_splits=5,
+        lr_grid=(0.01, 0.005, 0.001, 0.0005, 0.0001),
+        wd_grid=(0.0, 0.0001, 0.0005),
+        dropout_grid=(0.0,),
         patience=20,
         min_delta=1e-4,
+        val_fraction=0.1,
+    ),
+    "dsmil": dict(
+        max_classes=2,
+        embed_dim=512,
+        attn_dim=384,
+        num_fc_layers=1,
+        dropout=0.0,
+        dropout_v=0.0,
+        lr_grid=(0.01, 0.005, 0.001, 0.0005, 0.0001),
+        wd_grid=(0.0, 0.0001, 0.0005),
+        epochs=200,
+        patience=20,
+        batch_size=None,
+        val_fraction=0.1,
     ),
     "tabpfn_concat": dict(max_classes=4, max_tabpfn_features=500, features_per_group=2),
     "tabpfn_subsample": dict(
@@ -108,8 +125,9 @@ _DATASET_FOR_PREFIX: list[tuple[str, str, str]] = [
 
 def _baseline_classes() -> dict[str, type]:
     """Import the baseline classes lazily — none of this is needed for ICMIL alone."""
-    from icmil.baselines.abmil_baseline import ABMILRefitBaseline
-    from icmil.baselines.acmil_baseline import ACMILRefitBaseline
+    from icmil.baselines.abmil_baseline import ABMILBaseline
+    from icmil.baselines.acmil_baseline import ACMILBaseline
+    from icmil.baselines.dsmil_baseline import DSMILBaseline
     from icmil.baselines.tabpfn_baselines import (
         ClusterTabPFNBaseline,
         MeanLogRegBaseline,
@@ -121,8 +139,9 @@ def _baseline_classes() -> dict[str, type]:
     return {
         "mean_logreg": MeanLogRegBaseline,
         "svm_summ": SVMSummBaseline,
-        "abmil_refit": ABMILRefitBaseline,
-        "acmil": ACMILRefitBaseline,
+        "abmil": ABMILBaseline,
+        "acmil": ACMILBaseline,
+        "dsmil": DSMILBaseline,
         "tabpfn_concat": TabPFNConcatBaseline,
         "tabpfn_subsample": TabPFNSubsampleBaseline,
         "cluster_tabpfn": ClusterTabPFNBaseline,
@@ -201,8 +220,8 @@ def evaluate(
 def _write_table(all_results: dict, output_dir: Path, n_runs: dict[str, int]) -> None:
     """Write the AUROC markdown table (mean ± SEM).
 
-    For a row with several runs the ± is the SEM **across runs**. A row with 
-    a single run has no cross-run spread, so its ± is the SEM across the 
+    For a row with several runs the ± is the SEM **across runs**. A row with
+    a single run has no cross-run spread, so its ± is the SEM across the
     task's splits instead.
     """
     metric = "roc_auc"

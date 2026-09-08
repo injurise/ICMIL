@@ -23,7 +23,7 @@ from icmil import load_icmil
 model = load_icmil(seed="c5trd795", device="cuda")
 
 # X_train is (1, n_bags, bag_size, n_features), y_train is (1, n_bags).
-logits = model(X_train, y_train, X_test)      # (1, n_query_bags, n_classes)
+logits = model(X_train, y_train, X_test)  # (1, n_query_bags, n_classes)
 ```
 
 ## Prior

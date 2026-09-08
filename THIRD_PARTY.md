@@ -5,8 +5,8 @@ Methods, code and data this repository builds on.
 ## Methods reimplemented here
 
 **Attention-based MIL** — the gated attention pooling in `icmil/mil_pooling.py`, used
-by the `abmil_refit` and `acmil` baselines and by the prior generator's
-`embedding_abmil` bag-label rule.
+by the `abmil` baseline and by the prior generator's `embedding_abmil`
+bag-label rule.
 
 > M. Ilse, J. M. Tomczak, M. Welling. *Attention-based Deep Multiple Instance
 > Learning.* ICML 2018. https://arxiv.org/abs/1802.04712
@@ -19,6 +19,18 @@ loss), rewritten to process a mini-batch of bags and to expose the same
 > Y. Zhang et al. *Attention-Challenging Multiple Instance Learning for Whole Slide
 > Image Classification.* 2023. https://arxiv.org/abs/2311.07125 —
 > reference implementation: https://github.com/dazhangyu123/ACMIL
+
+**Dual-stream MIL** — `icmil/baselines/dsmil_baseline.py` reimplements DSMIL (an
+instance stream max-pooled over instances plus a bag stream attending against the
+per-class critical instance), self-contained so it exposes the same
+`forward(X_train, y_train, X_test)` interface as the other baselines. Only the
+supervised aggregator is used; the paper's self-supervised contrastive feature
+pretraining is not part of this baseline.
+
+> B. Li, Y. Li, K. W. Eliceiri. *Dual-stream Multiple Instance Learning Network for
+> Whole Slide Image Classification with Self-supervised Contrastive Learning.* CVPR
+> 2021. https://arxiv.org/abs/2011.08939 —
+> reference implementation: https://github.com/binli123/dsmil-wsi
 
 ## Packages
 

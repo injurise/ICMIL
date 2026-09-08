@@ -12,7 +12,6 @@ from icmil.benchmarks import create_benchmark_tasks
 from icmil.benchmarks.registry import TASK_NAMES
 from icmil.reproduce import BASELINE_SPECS, TASKS, _parse_selection, _write_table, evaluate
 
-
 # --------------------------------------------------------------------------- tasks
 
 

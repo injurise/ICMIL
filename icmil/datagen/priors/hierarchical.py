@@ -18,14 +18,13 @@ from tabicl.prior.reg2cls import (
 from tabicl.prior.tree_scm import TreeSCM
 from torch import Tensor
 
+from icmil.datagen.priors.common import ACTIVATIONS, StrategySpec, _sample_strategy
 from icmil.datagen.priors.sampling import (
     GenerationParams,
     SCMConfig,
     _sample_scm_params,
 )
 from icmil.mil_pooling import ABMILAggregator
-
-from icmil.datagen.priors.common import ACTIVATIONS, StrategySpec, _sample_strategy
 
 logger = logging.getLogger(__name__)
 
