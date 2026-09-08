@@ -451,7 +451,7 @@ class SVMSummBaseline(nn.Module):
       indices, and per-fold ``predict_proba`` outputs are averaged on
       ``X_test``.
 
-    When stratified CV is infeasible, the search is skipped and a default 
+    When stratified CV is infeasible, the search is skipped and a default
     ``C=1`` SVC is fit on the full ``X_train``.
     """
 

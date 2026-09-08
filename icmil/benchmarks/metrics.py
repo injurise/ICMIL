@@ -136,7 +136,7 @@ def _summarize_timings(timings: list[dict[str, float | int]]) -> dict[str, float
 
     Each input dict carries ``elapsed_s`` plus shape stats (``n_train_bags``,
     ``n_test_bags``, ``bag_size``, ``n_features``). Returns aggregate timing
-    keys, the mean shape stats, and the raw list under ``per_split_timings`` 
+    keys, the mean shape stats, and the raw list under ``per_split_timings``
     for post-hoc analysis.
     """
     out: dict[str, float | int | list] = {}

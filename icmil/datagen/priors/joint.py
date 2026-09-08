@@ -13,10 +13,9 @@ from tabicl.prior.reg2cls import (
 )
 from torch import Tensor
 
-from icmil.datagen.priors.sampling import SCMConfig
-
 from icmil.datagen.priors.common import StrategySpec, _sample_strategy
 from icmil.datagen.priors.hierarchical import SimplifiedHierarchicalMILPriorGenerator
+from icmil.datagen.priors.sampling import SCMConfig
 
 logger = logging.getLogger(__name__)
 

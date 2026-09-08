@@ -4,8 +4,8 @@ ACMIL-GA (gated-attention variant) from Zhang et al. 2023
 ("Attention-Challenging Multiple Instance Learning for Whole Slide Image
 Classification", https://arxiv.org/abs/2311.07125, repo
 https://github.com/dazhangyu123/ACMIL), wrapped as a per-split MIL baseline
-with the same ``forward(X_train, y_train, X_test) -> logits`` interface and
-K-fold-CV-then-refit fitting as :mod:`icmil.baselines.abmil_baseline`.
+with the same ``forward(X_train, y_train, X_test) -> logits`` interface as
+:mod:`icmil.baselines.abmil_baseline`.
 
 ACMIL extends gated-attention ABMIL with three "attention-challenging" tricks:
 
@@ -22,10 +22,10 @@ ACMIL extends gated-attention ABMIL with three "attention-challenging" tricks:
    ``diff_loss`` is the mean pairwise cosine similarity of the branch attention
    maps (a diversity penalty pushing branches to attend to different instances).
 
-HP selection mirrors :class:`~icmil.baselines.abmil_baseline.ABMILRefitBaseline`
-exactly: bag-level 5-fold CV over an ``(lr, wd, dropout)`` grid scored by mean
-cross-fold val bag-CE (with per-fold early stopping), then a single refit on the
-full ``X_train`` for ``e_bar = ceil(mean(best_epochs_per_fold))`` epochs. The spread
+HP selection matches :class:`~icmil.baselines.abmil_baseline.ABMILBaseline` and
+:class:`~icmil.baselines.dsmil_baseline.DSMILBaseline`: ``(lr, wd, dropout)``
+picked on a stratified held-out validation split with :class:`torch.optim.Adam`
+and early stopping, so the three rows differ only in architecture. The spread
 reported in the benchmark table comes from running several seeds.
 
 Standalone usage::
@@ -39,20 +39,16 @@ from __future__ import annotations
 import copy
 import itertools
 import logging
-import math
 
 import numpy as np
-import schedulefree
 import torch
 import torch.nn.functional as F
+from sklearn.model_selection import StratifiedShuffleSplit
 from torch import nn
 
 from icmil.baselines.abmil_baseline import _strip_trailing_zeros
-from icmil.baselines.tabpfn_baselines import _bag_level_stratified_folds
 
 logger = logging.getLogger(__name__)
-
-HPCombo = tuple[float, float, float]
 
 
 class ACMILGatedAttention(nn.Module):
@@ -172,8 +168,24 @@ def acmil_composite_loss(
     return loss_bag + loss_branch + diff_loss
 
 
-class ACMILRefitBaseline(nn.Module):
-    """ACMIL-GA with K-fold CV for HP scoring, then a single refit on full X_train."""
+class ACMILBaseline(nn.Module):
+    """ACMIL-GA fitted per split, with (lr, wd, dropout) selected on a held-out split.
+
+    When ``val_fraction > 0`` every combination in
+    ``lr_grid x wd_grid x dropout_grid`` is trained with early stopping
+    (``patience``) on one stratified validation split and the one reaching the
+    lowest validation CE is kept, at its best-CE checkpoint. When
+    ``val_fraction == 0`` the first entry of each grid is used and the model
+    trains on all context bags for ``epochs``.
+
+    The search space and optimizer match
+    :class:`~icmil.baselines.abmil_baseline.ABMILBaseline` and
+    :class:`~icmil.baselines.dsmil_baseline.DSMILBaseline` — the same
+    ``lr_grid``/``wd_grid``, dropout fixed at 0 by default (``dropout_grid=(0.0,)``
+    — pass more values to sweep it), and :class:`torch.optim.Adam` with L2-style
+    weight decay and no schedule — so ``acmil`` vs ``abmil`` vs ``dsmil`` isolates
+    architecture only.
+    """
 
     def __init__(
         self,
@@ -185,14 +197,13 @@ class ACMILRefitBaseline(nn.Module):
         mask_drop: float = 0.6,
         epochs: int = 200,
         batch_size: int = 32,
-        warmup_steps: int = 20,
         seed: int = 0,
-        lr_grid: tuple[float, ...] = (1e-3, 1e-4),
-        wd_grid: tuple[float, ...] = (0.0, 0.01),
-        dropout_grid: tuple[float, ...] = (0.0, 0.1),
-        n_cv_splits: int = 5,
+        lr_grid: tuple[float, ...] = (0.01, 0.005, 0.001, 0.0005, 0.0001),
+        wd_grid: tuple[float, ...] = (0.0, 0.0001, 0.0005),
+        dropout_grid: tuple[float, ...] = (0.0,),
         patience: int = 20,
         min_delta: float = 1e-4,
+        val_fraction: float = 0.1,
     ) -> None:
         super().__init__()
         self.max_classes = max_classes
@@ -203,16 +214,20 @@ class ACMILRefitBaseline(nn.Module):
         self.mask_drop = mask_drop
         self.epochs = epochs
         self.batch_size = batch_size
-        self.warmup_steps = warmup_steps
         self.seed = seed
         self.lr_grid = lr_grid
         self.wd_grid = wd_grid
         self.dropout_grid = dropout_grid
-        self.n_cv_splits = n_cv_splits
         self.patience = patience
         self.min_delta = min_delta
+        self.val_fraction = val_fraction
 
-    def train(self, mode: bool = True) -> ACMILRefitBaseline:
+    def train(self, mode: bool = True) -> ACMILBaseline:
+        """No-op so the eval harness cannot flip the wrapper into train mode.
+
+        The *inner* :class:`ACMILGatedAttention` still toggles train/eval
+        normally, which is what enables and disables stochastic masking.
+        """
         return super().train(False)
 
     def _make_model(self, in_dim: int, device: torch.device, dropout: float) -> ACMILGatedAttention:
@@ -238,33 +253,26 @@ class ACMILRefitBaseline(nn.Module):
         seed: int,
         X_val: torch.Tensor | None = None,
         y_val: torch.Tensor | None = None,
-        max_epochs: int | None = None,
-    ) -> tuple[ACMILGatedAttention, int]:
-        """Train one ACMIL model; return ``(model, best_epoch)``.
+    ) -> ACMILGatedAttention:
+        """Train one ACMIL model on the composite loss.
 
         With ``X_val``/``y_val`` runs early stopping on val bag-CE (masking off
-        for the val forward) and returns the best-val checkpoint plus its
-        1-indexed epoch. Otherwise trains ``max_epochs`` (default ``self.epochs``)
-        with no early stopping.
+        for the val forward) and returns the best-val checkpoint. Otherwise
+        trains ``self.epochs`` with no early stopping.
         """
-        budget = max_epochs if max_epochs is not None else self.epochs
         torch.manual_seed(seed)
         model = self._make_model(in_dim, X.device, dropout)
-        opt = schedulefree.AdamWScheduleFree(
-            model.parameters(), lr=lr, weight_decay=wd, warmup_steps=self.warmup_steps
-        )
+        opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
         n = X.shape[0]
         bs = min(self.batch_size, n)
 
         do_es = X_val is not None and y_val is not None
         best_val = float("inf")
         best_state: dict[str, torch.Tensor] | None = None
-        best_epoch_idx = 0
         wait = 0
 
         model.train()
-        opt.train()
-        for epoch in range(budget):
+        for _epoch in range(self.epochs):
             perm = torch.randperm(n, device=X.device)
             for start in range(0, n, bs):
                 idx = perm[start : start + bs]
@@ -276,15 +284,12 @@ class ACMILRefitBaseline(nn.Module):
 
             if do_es:
                 model.eval()
-                opt.eval()
                 with torch.no_grad():
                     val_loss = F.cross_entropy(model(X_val)[1], y_val).item()
                 model.train()
-                opt.train()
                 if val_loss < best_val - self.min_delta:
                     best_val = val_loss
                     best_state = copy.deepcopy(model.state_dict())
-                    best_epoch_idx = epoch
                     wait = 0
                 else:
                     wait += 1
@@ -293,73 +298,44 @@ class ACMILRefitBaseline(nn.Module):
 
         if best_state is not None:
             model.load_state_dict(best_state)
-        opt.eval()
-        best_epoch = best_epoch_idx + 1 if do_es else budget
-        return model.eval(), best_epoch
+        return model.eval()
 
     @torch.no_grad()
     def _slide_logits(self, model: ACMILGatedAttention, X: torch.Tensor) -> torch.Tensor:
         """Bag-level logits with masking off (``model`` is in eval mode)."""
         return model(X)[1]
 
-    def _make_folds(self, y: torch.Tensor, seed: int) -> list[tuple[torch.Tensor, torch.Tensor]]:
-        np_folds = _bag_level_stratified_folds(y.cpu().numpy(), self.n_cv_splits, seed=seed)
-        return [
-            (
-                torch.as_tensor(tr, device=y.device, dtype=torch.long),
-                torch.as_tensor(va, device=y.device, dtype=torch.long),
-            )
-            for tr, va in np_folds
-        ]
-
-    def _cv_train(self, X: torch.Tensor, y: torch.Tensor, in_dim: int, seed: int) -> tuple[HPCombo, int]:
-        """Bag-level K-fold CV over the (lr, wd, dropout) grid, scored by mean val bag-CE.
-
-        Returns the winning combo and ``e_bar = ceil(mean(best_epochs))`` for the
-        refit pass. When stratified CV is infeasible (single class or a class with
-        <2 samples) returns the grid-centre combo and the full epoch budget.
-        """
-        folds = self._make_folds(y, seed=seed)
-        combos = list(itertools.product(self.lr_grid, self.wd_grid, self.dropout_grid))
-        if not folds:
-            return combos[len(combos) // 2], self.epochs
-
-        per_outer = len(combos) * len(folds)
-        ces: dict[HPCombo, list[float]] = {c: [] for c in combos}
-        best_epochs: dict[HPCombo, list[int]] = {c: [] for c in combos}
-
-        for combo_idx, (lr, wd, dropout) in enumerate(combos):
-            for fold_idx, (tr, va) in enumerate(folds):
-                fit_seed = seed * per_outer + combo_idx * len(folds) + fold_idx
-                m, best_epoch = self._train_once(
-                    X[tr], y[tr], in_dim, lr, wd, dropout, fit_seed, X_val=X[va], y_val=y[va]
-                )
-                ces[(lr, wd, dropout)].append(F.cross_entropy(self._slide_logits(m, X[va]), y[va]).item())
-                best_epochs[(lr, wd, dropout)].append(best_epoch)
-
-        means = {c: float(np.mean(v)) for c, v in ces.items()}
-        best = min(means, key=means.get)
-        e_bar = max(1, math.ceil(float(np.mean(best_epochs[best]))))
-        logger.info(
-            "ACMIL CV (seed=%d) picked lr=%g wd=%g dropout=%g -> e_bar=%d (mean val CE per combo: %s)",
-            seed,
-            *best,
-            e_bar,
-            means,
-        )
-        return best, e_bar
-
     def _fit_predict(self, X_tr: torch.Tensor, y_tr: torch.Tensor, X_te: torch.Tensor) -> torch.Tensor:
-        """Run CV, refit on full train, return ``log_softmax(slide_logits)`` for X_test."""
+        """Select the combo on a val split (or use grid[0]s when val_fraction=0) → log_softmax on test."""
         combined = _strip_trailing_zeros(torch.cat([X_tr, X_te], dim=0))
         in_dim = combined.shape[-1]
         n_tr = X_tr.shape[0]
         X_tr = combined[:n_tr].contiguous()
         X_te = combined[n_tr:].contiguous()
 
-        (lr, wd, dropout), e_bar = self._cv_train(X_tr, y_tr, in_dim, seed=self.seed)
-        model, _ = self._train_once(X_tr, y_tr, in_dim, lr, wd, dropout, seed=self.seed, max_epochs=e_bar)
-        return F.log_softmax(self._slide_logits(model, X_te), dim=-1)
+        if self.val_fraction > 0.0:
+            sss = StratifiedShuffleSplit(n_splits=1, test_size=self.val_fraction, random_state=self.seed)
+            tr_idx_np, va_idx_np = next(sss.split(np.zeros(len(y_tr)), y_tr.cpu().numpy()))
+            tr_idx = torch.as_tensor(tr_idx_np, device=X_tr.device, dtype=torch.long)
+            va_idx = torch.as_tensor(va_idx_np, device=X_tr.device, dtype=torch.long)
+            X_tr_s, y_tr_s = X_tr[tr_idx], y_tr[tr_idx]
+            X_va, y_va = X_tr[va_idx], y_tr[va_idx]
+
+            best_val_ce = float("inf")
+            best_model: ACMILGatedAttention | None = None
+            for lr, wd, dropout in itertools.product(self.lr_grid, self.wd_grid, self.dropout_grid):
+                logger.info("ACMIL: training lr=%g wd=%g dropout=%g", lr, wd, dropout)
+                m = self._train_once(X_tr_s, y_tr_s, in_dim, lr, wd, dropout, seed=self.seed, X_val=X_va, y_val=y_va)
+                val_ce = F.cross_entropy(self._slide_logits(m, X_va), y_va).item()
+                if val_ce < best_val_ce:
+                    best_val_ce = val_ce
+                    best_model = m
+        else:
+            best_model = self._train_once(
+                X_tr, y_tr, in_dim, self.lr_grid[0], self.wd_grid[0], self.dropout_grid[0], seed=self.seed
+            )
+
+        return F.log_softmax(self._slide_logits(best_model, X_te), dim=-1)
 
     def forward(self, X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor) -> torch.Tensor:
         """Per-batch wrapper: run ``_fit_predict`` over the batch axis."""

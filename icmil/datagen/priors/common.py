@@ -11,7 +11,6 @@ from __future__ import annotations
 import numpy as np
 import torch
 
-
 StrategySpec = str | list[str] | dict[str, float]
 
 

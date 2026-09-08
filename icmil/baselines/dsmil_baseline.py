@@ -1,22 +1,31 @@
-"""ABMIL baseline.
+"""DSMIL baseline (Dual-Stream Multiple Instance Learning).
 
-Attention-based MIL (Ilse et al., 2018) — patch-embedding MLP → gated attention
-pooling → linear head — wrapped as a per-split baseline that fits from scratch
-on each ``(X_train, y_train)`` and predicts on ``X_test``.
+DSMIL from Li et al. 2021 ("Dual-stream Multiple Instance Learning Network for
+Whole Slide Image Classification with Self-supervised Contrastive Learning",
+https://arxiv.org/abs/2011.08939, repo https://github.com/binli123/dsmil-wsi),
+wrapped as a per-split MIL baseline with the same
+``forward(X_train, y_train, X_test) -> logits`` interface as
+:mod:`icmil.baselines.abmil_baseline`.
 
-:class:`ABMILBaseline` selects ``(lr, wd)`` on a stratified held-out split of the
-context bags: every combination is trained with :class:`torch.optim.Adam` and
-early stopping on validation bag-CE, and the combination reaching the lowest
-validation CE is kept, at its best-CE checkpoint.
-:mod:`icmil.baselines.acmil_baseline` and :mod:`icmil.baselines.dsmil_baseline`
-fit the same way, so the three rows differ only in architecture.
+A ``patch_embed`` MLP feeds two streams whose logits are averaged:
 
-The model is deterministic given ``seed``; the spread reported in the benchmark
-table comes from :mod:`icmil.reproduce` running several seeds.
+1. **Instance stream** — a per-instance linear classifier, max-pooled over the
+   instance axis.
+2. **Bag stream** — attention of every instance against the "critical" instance
+   per class (the one with the highest instance-stream score for that class),
+   pooling one bag embedding per class.
+
+HP selection matches :class:`~icmil.baselines.abmil_baseline.ABMILBaseline` and
+:class:`~icmil.baselines.acmil_baseline.ACMILBaseline`: every ``(lr, wd)``
+combination is trained with :class:`torch.optim.Adam` and early stopping on
+validation bag-CE over a stratified held-out split, and the combination reaching
+the lowest validation CE is kept, at its best-CE checkpoint. All three rows
+therefore differ only in architecture. The spread reported in the benchmark table
+comes from running several seeds.
 
 Standalone usage::
 
-    model = ABMIL(in_dim=1024, num_classes=2)
+    model = DSMIL(in_dim=1024, num_classes=2)
     logits = model(features)            # features: (B, M, D)
 """
 
@@ -24,6 +33,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+import math
 
 import numpy as np
 import torch
@@ -31,35 +41,61 @@ import torch.nn.functional as F
 from sklearn.model_selection import StratifiedShuffleSplit
 from torch import nn
 
-from icmil.mil_pooling import GlobalAttention, GlobalGatedAttention, create_mlp
+from icmil.baselines.abmil_baseline import _strip_trailing_zeros
+from icmil.mil_pooling import create_mlp
 
 logger = logging.getLogger(__name__)
 
 
-def _strip_trailing_zeros(X: torch.Tensor) -> torch.Tensor:
-    """Remove trailing all-zero feature columns from a ``(..., F)`` tensor.
+class BClassifier(nn.Module):
+    """DSMIL bag stream: attention of every instance against the critical instances.
 
-    The eval harness right-pads features to ``max_features``; stripping the
-    pad keeps the patch-embed MLP from wasting capacity on zeros.
+    The critical instance for class ``c`` is the one with the highest
+    instance-stream score for ``c``. Queries are compared against those
+    critical-instance queries, softmaxed over the instance axis, and used to
+    pool values into one bag embedding per class.
     """
-    active = X.abs().sum(dim=tuple(range(X.ndim - 1))) > 0
-    if not active.any():
-        return X[..., :1]
-    last = active.nonzero(as_tuple=True)[0].max().item()
-    return X[..., : last + 1]
+
+    def __init__(self, in_dim: int, attn_dim: int = 384, dropout: float = 0.0) -> None:
+        super().__init__()
+        self.q = nn.Linear(in_dim, attn_dim)
+        self.v = nn.Sequential(nn.Dropout(dropout), nn.Linear(in_dim, in_dim))
+        self.norm = nn.LayerNorm(in_dim)
+
+    def forward(
+        self,
+        h: torch.Tensor,
+        c: torch.Tensor,
+        attn_mask: torch.Tensor | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """``h`` is ``(B, M, E)``, ``c`` is ``(B, M, C)``; returns ``((B, C, E), (B, M, C))``."""
+        v = self.v(h)  # (B, M, E)
+        q = self.q(h)  # (B, M, A)
+
+        crit_idx = c.argmax(dim=1)  # (B, C) — top-scoring instance per class
+        crit_feats = torch.gather(h, 1, crit_idx.unsqueeze(-1).expand(-1, -1, h.shape[-1]))  # (B, C, E)
+        q_crit = self.q(crit_feats)  # (B, C, A)
+
+        a = torch.bmm(q, q_crit.transpose(1, 2))  # (B, M, C)
+        if attn_mask is not None:
+            a = a + (1 - attn_mask).unsqueeze(-1) * torch.finfo(a.dtype).min
+        a = F.softmax(a / math.sqrt(q.shape[-1]), dim=1)  # over instances
+
+        bag = torch.bmm(a.transpose(1, 2), v)  # (B, C, E)
+        return self.norm(bag), a
 
 
-class ABMIL(nn.Module):
-    """Attention-based MIL: patch-embed MLP -> gated attention pooling -> classifier."""
+class DSMIL(nn.Module):
+    """Dual-stream MIL: patch-embed MLP -> instance stream + bag stream -> averaged logits."""
 
     def __init__(
         self,
         in_dim: int = 1024,
         embed_dim: int = 512,
         num_fc_layers: int = 1,
-        dropout: float = 0.25,
+        dropout: float = 0.0,
         attn_dim: int = 384,
-        gate: bool = True,
+        dropout_v: float = 0.0,
         num_classes: int = 2,
     ) -> None:
         super().__init__()
@@ -74,14 +110,16 @@ class ABMIL(nn.Module):
             out_dim=embed_dim,
             end_with_fc=False,
         )
-        attn = GlobalGatedAttention if gate else GlobalAttention
-        self.global_attn = attn(L=embed_dim, D=attn_dim, dropout=dropout, num_classes=1)
-        self.classifier = nn.Linear(embed_dim, num_classes)
+        self.i_classifier = nn.Linear(embed_dim, num_classes)
+        self.b_classifier = BClassifier(in_dim=embed_dim, attn_dim=attn_dim, dropout=dropout_v)
+        # Per-class 1D conv over the embedding axis: one weight vector per class,
+        # as in the reference implementation.
+        self.classifier = nn.Conv1d(num_classes, num_classes, kernel_size=embed_dim)
         self._init_weights()
 
     def _init_weights(self) -> None:
         for m in self.modules():
-            if isinstance(m, nn.Linear):
+            if isinstance(m, nn.Linear | nn.Conv1d):
                 nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
@@ -89,19 +127,19 @@ class ABMIL(nn.Module):
     def forward(self, h: torch.Tensor, attn_mask: torch.Tensor | None = None) -> torch.Tensor:
         """Forward pass. ``h`` is ``(B, M, D)``; returns ``(B, num_classes)``."""
         h = self.patch_embed(h)  # (B, M, E)
-        a = self.global_attn(h)  # (B, M, 1)
-        a = a.transpose(-2, -1)  # (B, 1, M)
+        inst_logits = self.i_classifier(h)  # (B, M, C)
         if attn_mask is not None:
-            a = a + (1 - attn_mask).unsqueeze(1) * torch.finfo(a.dtype).min
-        a = F.softmax(a, dim=-1)
-        bag = torch.bmm(a, h).squeeze(1)  # (B, E)
-        return self.classifier(bag)
+            inst_logits = inst_logits + (1 - attn_mask).unsqueeze(-1) * torch.finfo(inst_logits.dtype).min
+        bag_feats, _ = self.b_classifier(h, inst_logits, attn_mask=attn_mask)  # (B, C, E)
+
+        bag_logits = self.classifier(bag_feats).squeeze(-1)  # (B, C)
+        max_inst_logits = inst_logits.max(dim=1).values  # (B, C)
+        return 0.5 * (bag_logits + max_inst_logits)
 
 
-class ABMILBaseline(nn.Module):
-    """ABMIL fitted per split, with (lr, wd) selected on a held-out validation split.
+class DSMILBaseline(nn.Module):
+    """DSMIL fitted per split, with (lr, wd) selected on a held-out validation split.
 
-    Training loop follows Ilse et al. 2018 (https://arxiv.org/abs/1802.04712).
     When ``val_fraction > 0`` every combination in ``lr_grid x wd_grid`` is
     trained with early stopping (``patience``) and the one reaching the lowest
     validation CE is kept. When ``val_fraction == 0`` the first entry of each grid
@@ -111,11 +149,11 @@ class ABMILBaseline(nn.Module):
     def __init__(
         self,
         max_classes: int = 2,
-        embed_dim: int = 500,
-        attn_dim: int = 128,
+        embed_dim: int = 512,
+        attn_dim: int = 384,
         num_fc_layers: int = 1,
         dropout: float = 0.0,
-        gate: bool = True,
+        dropout_v: float = 0.0,
         lr_grid: tuple[float, ...] = (0.01, 0.005, 0.001, 0.0005, 0.0001),
         wd_grid: tuple[float, ...] = (0.0, 0.0001, 0.0005),
         epochs: int = 200,
@@ -130,7 +168,7 @@ class ABMILBaseline(nn.Module):
         self.attn_dim = attn_dim
         self.num_fc_layers = num_fc_layers
         self.dropout = dropout
-        self.gate = gate
+        self.dropout_v = dropout_v
         self.lr_grid = lr_grid
         self.wd_grid = wd_grid
         self.epochs = epochs
@@ -139,17 +177,17 @@ class ABMILBaseline(nn.Module):
         self.seed = seed
         self.val_fraction = val_fraction
 
-    def train(self, mode: bool = True) -> ABMILBaseline:
+    def train(self, mode: bool = True) -> DSMILBaseline:
         return super().train(False)
 
-    def _make_model(self, in_dim: int, device: torch.device) -> ABMIL:
-        return ABMIL(
+    def _make_model(self, in_dim: int, device: torch.device) -> DSMIL:
+        return DSMIL(
             in_dim=in_dim,
             embed_dim=self.embed_dim,
             num_fc_layers=self.num_fc_layers,
             dropout=self.dropout,
             attn_dim=self.attn_dim,
-            gate=self.gate,
+            dropout_v=self.dropout_v,
             num_classes=self.max_classes,
         ).to(device)
 
@@ -162,8 +200,8 @@ class ABMILBaseline(nn.Module):
         wd: float,
         X_va: torch.Tensor | None = None,
         y_va: torch.Tensor | None = None,
-    ) -> tuple[ABMIL, float]:
-        """Train one ABMIL with Adam; early-stop on val CE when val data provided.
+    ) -> tuple[DSMIL, float]:
+        """Train one DSMIL with Adam; early-stop on val CE when val data provided.
 
         Returns the model at the best val CE checkpoint and that CE value.
         When no val data is given, trains for the full ``epochs`` and returns inf.
@@ -223,9 +261,9 @@ class ABMILBaseline(nn.Module):
             X_va, y_va = X_tr[va_idx], y_tr[va_idx]
 
             best_val_ce = float("inf")
-            best_model: ABMIL | None = None
+            best_model: DSMIL | None = None
             for lr, wd in itertools.product(self.lr_grid, self.wd_grid):
-                logger.info("ABMIL: training lr=%g wd=%g", lr, wd)
+                logger.info("DSMIL: training lr=%g wd=%g", lr, wd)
                 m, val_ce = self._train_model(X_tr_s, y_tr_s, in_dim, lr, wd, X_va, y_va)
                 if val_ce < best_val_ce:
                     best_val_ce = val_ce

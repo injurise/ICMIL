@@ -1,7 +1,7 @@
 """Readers for the synthetic prior H5 files written by :mod:`icmil.datagen.generate`.
 
 ``BaggedPriorH5Dataset`` streams one prior file; ``MultiPriorH5Dataset`` mixes several
-according to per-arm weights. Both hand out whole pre-batched groups rather than 
+according to per-arm weights. Both hand out whole pre-batched groups rather than
 individual samples, and both preserve batch order when the file carries a curriculum.
 """
 
@@ -195,8 +195,7 @@ class MultiPriorH5Dataset(Dataset):
                 )
             if ds.max_classes != ref.max_classes:
                 raise ValueError(
-                    f"max_classes mismatch: {ref.filename} has {ref.max_classes}, "
-                    f"{ds.filename} has {ds.max_classes}"
+                    f"max_classes mismatch: {ref.filename} has {ref.max_classes}, {ds.filename} has {ds.max_classes}"
                 )
             if ds.batch_size != ref.batch_size:
                 raise ValueError(

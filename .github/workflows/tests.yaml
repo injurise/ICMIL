@@ -19,7 +19,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install torch --index-url https://download.pytorch.org/whl/cpu
           pip install -e ".[datagen]"
-          pip install pytest ruff
+          pip install pytest 'ruff==0.16.*'
 
       - name: Lint
         run: |
