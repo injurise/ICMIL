@@ -1,7 +1,8 @@
 """MNIST-XAI MIL benchmark tasks: reads frozen draws.
 
-Synthetic MIL problems built from MNIST digits, each defined by a different rule
-linking the instances of a bag to its label:
+Synthetic MIL problems built from MNIST digits following the bag-construction
+rules of Hense et al. (2024, xMIL), each defined by a different rule linking the
+instances of a bag to its label:
 
 * ``smil``            — a single witness digit determines the label,
 * ``four_bags``       — a four-way variant of the witness rule,
