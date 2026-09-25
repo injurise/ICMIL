@@ -2,7 +2,7 @@
 
 Official code for the paper "In-Context Multiple Instance Learning".
 
-ICMIL is a Prior-data Fitted Network (PFN) for Multiple Instance Learning. A Perceiver-style transformer is pretrained on synthetic bag-structured data and, at inference time, classifies new MIL tasks in a single forward pass — no gradient updates, no hyperparameter tuning, no task-specific finetuning.
+ICMIL is a Prior-data Fitted Network (PFN) for Multiple Instance Learning. A Perceiver-style transformer is pretrained on synthetic bag-structured data and, at inference time, classifies new MIL tasks in a single forward pass. No gradient updates, no hyperparameter tuning, no task-specific finetuning.
 
 ## Highlights
 
