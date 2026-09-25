@@ -1,21 +1,26 @@
 # In-Context Multiple-Instance Learning
 
-ICMIL is a Prior-data Fitted Network for bag-structured data. It is pretrained
-purely on synthetic MIL tasks and solves new ones in a single forward pass without
-gradient updates, hyperparameter tuning, or task-specific training.
+Official code for the paper "In-Context Multiple Instance Learning".
 
-This repo provides code to train and run ICMIL models, generate data from our 
-priors, evaluate baselines on a suite of 12 benchmarks, and to reproduce the 
-benchmark table found in our paper using our checkpoints. 
+ICMIL is a Prior-data Fitted Network (PFN) for Multiple Instance Learning. A Perceiver-style transformer is pretrained on synthetic bag-structured data and, at inference time, classifies new MIL tasks in a single forward pass — no gradient updates, no hyperparameter tuning, no task-specific finetuning.
 
-## Setup
+## Highlights
+
+- **In-context MIL:** solve a new bag classification task by feeding labeled context bags directly to the model.
+- **Perceiver-style architecture** for hierarchical set inputs that handles scalability, task-dependent instance compression, and within-bag permutation invariance.
+- **Synthetic priors** for bag-structured data (factorized and joint), with a mixture prior that combines their complementary inductive biases.
+
+
+## Usage
+
+#### Setup
 
 ```bash
 pip install -e .
 pip install -e ".[datagen]"
 ```
 
-## Using the model
+#### Forward Pass
 
 ```python
 from icmil import load_icmil
@@ -26,20 +31,20 @@ model = load_icmil(seed="c5trd795", device="cuda")
 logits = model(X_train, y_train, X_test)  # (1, n_query_bags, n_classes)
 ```
 
-## Prior
+#### Prior Generation
 
 ```bash
 python -m icmil.datagen.generate --dry-run
 python -m icmil.datagen.generate --num-batches 100 --out-dir /tmp/demo
 ```
 
-## Training
+#### Training
 
 ```bash
 python -m icmil.train --data-dir workdir/priors --out checkpoints/my-icmil.pt
 ```
 
-## Reproducing the table
+#### Reproducing the results table from the paper
 
 ```bash
 python -m icmil.reproduce
