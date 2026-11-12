@@ -112,6 +112,9 @@ BASELINE_SPECS: dict[str, dict] = {
     ),
     "cluster_tabpfn": dict(max_classes=4, n_clusters=5, n_pca_components=None, max_tabpfn_features=500),
 }
+# Refit variants (not in the paper table): same selection, then retrain on train + validation bags.
+BASELINE_SPECS["abmil_refit"] = dict(BASELINE_SPECS["abmil"], refit=True)
+BASELINE_SPECS["acmil_refit"] = dict(BASELINE_SPECS["acmil"], refit=True)
 
 # Which .h5 each task family needs, as the keyword `create_benchmark_tasks` expects.
 _DATASET_FOR_PREFIX: list[tuple[str, str, str]] = [
@@ -145,6 +148,8 @@ def _baseline_classes() -> dict[str, type]:
         "tabpfn_concat": TabPFNConcatBaseline,
         "tabpfn_subsample": TabPFNSubsampleBaseline,
         "cluster_tabpfn": ClusterTabPFNBaseline,
+        "abmil_refit": ABMILBaseline,
+        "acmil_refit": ACMILBaseline,
     }
 
 
