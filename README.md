@@ -60,6 +60,13 @@ python -m icmil.reproduce --tasks tad_pca25
 python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm  # 50-feature checkpoints
 ```
 
+#### Number of labeled bags
+
+```bash
+python -m icmil.bag_count
+python -m icmil.bag_count --benchmarks rsna_ich --bag-counts 25,100 --baselines none
+```
+
 ## Licence
 
 MIT, see `LICENSE` and `THIRD_PARTY.md`.

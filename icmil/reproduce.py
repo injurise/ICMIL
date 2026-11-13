@@ -194,12 +194,20 @@ def evaluate(
     n_seeds: int,
     device: str,
     output_dir: Path,
+    benchmark_tasks: list | None = None,
+    dataset_paths: dict[str, str] | None = None,
 ) -> dict:
-    """Run the requested models over the requested tasks and write the outputs."""
+    """Run the requested models over the requested tasks and write the outputs.
+
+    ``benchmark_tasks`` / ``dataset_paths`` replace the tasks and ``.h5`` paths that
+    would otherwise be resolved from ``tasks`` and ``data_source``.
+    """
     dev = torch.device(device if device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu"))
     logger.info("Device: %s", dev)
 
-    benchmark_tasks = create_benchmark_tasks(tasks, **_dataset_kwargs(data_source, tasks))
+    if benchmark_tasks is None:
+        dataset_paths = _dataset_kwargs(data_source, tasks)
+        benchmark_tasks = create_benchmark_tasks(tasks, **dataset_paths)
 
     # display label -> (runs, max_features)
     models: dict[str, tuple[list, int | None]] = {}
@@ -240,7 +248,7 @@ def evaluate(
     output_dir.mkdir(parents=True, exist_ok=True)
     _write_table(all_results, output_dir, {label: len(runs) for label, (runs, _) in models.items()})
     (output_dir / "results.json").write_text(json.dumps(all_results, indent=2, default=float))
-    _write_run_meta(output_dir, dev, models, tasks, n_seeds, timings, _dataset_kwargs(data_source, tasks))
+    _write_run_meta(output_dir, dev, models, tasks, n_seeds, timings, dataset_paths or {})
     logger.info("Wrote %s", ", ".join(sorted(p.name for p in output_dir.glob("*"))))
     return all_results
 
