@@ -36,7 +36,9 @@ pretraining is not part of this baseline.
 
 **TabPFN** — the `tabpfn_concat`, `tabpfn_subsample` and `cluster_tabpfn` baselines run
 a frozen TabPFN v2 backbone. The package downloads its pretrained weights from the
-upstream provider on first use; this repository does not redistribute them.
+upstream provider on first use; this repository does not redistribute them. The pooled
+baselines (`mean_tabpfn*`, `summ_tabpfn*`) run the TabPFN v2, v2.5, v3 and v3.5 classifiers
+at the package defaults; the v2.5 and v3.5 weights are gated behind their own licenses.
 
 > N. Hollmann et al. *TabPFN: A Transformer That Solves Small Tabular Classification
 > Problems in a Second.* ICLR 2023.
