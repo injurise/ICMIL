@@ -101,6 +101,20 @@ BASELINE_SPECS: dict[str, dict] = {
         batch_size=None,
         val_fraction=0.1,
     ),
+    "mambamil": dict(
+        max_classes=2,
+        embed_dim=512,
+        attn_dim=128,
+        n_layers=2,
+        rate=5,
+        dropout=0.0,
+        lr_grid=(0.01, 0.005, 0.001, 0.0005, 0.0001),
+        wd_grid=(0.0, 0.0001, 0.0005),
+        epochs=200,
+        patience=20,
+        batch_size=None,
+        val_fraction=0.1,
+    ),
     "tabpfn_concat": dict(max_classes=4, max_tabpfn_features=500, features_per_group=2),
     "tabpfn_subsample": dict(
         max_classes=4,
@@ -131,6 +145,7 @@ def _baseline_classes() -> dict[str, type]:
     from icmil.baselines.abmil_baseline import ABMILBaseline
     from icmil.baselines.acmil_baseline import ACMILBaseline
     from icmil.baselines.dsmil_baseline import DSMILBaseline
+    from icmil.baselines.mambamil_baseline import MambaMILBaseline
     from icmil.baselines.tabpfn_baselines import (
         ClusterTabPFNBaseline,
         MeanLogRegBaseline,
@@ -145,6 +160,7 @@ def _baseline_classes() -> dict[str, type]:
         "abmil": ABMILBaseline,
         "acmil": ACMILBaseline,
         "dsmil": DSMILBaseline,
+        "mambamil": MambaMILBaseline,
         "tabpfn_concat": TabPFNConcatBaseline,
         "tabpfn_subsample": TabPFNSubsampleBaseline,
         "cluster_tabpfn": ClusterTabPFNBaseline,
