@@ -351,6 +351,41 @@ class TestDSMILBaseline:
 
 
 # ---------------------------------------------------------------------------
+# Refit on train + validation bags
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(("make", "method"), [(_tiny_abmil, "_train_model"), (_tiny_acmil, "_train_once")])
+@pytest.mark.parametrize("refit", [False, True])
+def test_refit_retrains_on_all_context_bags(train_test_tensors, make, method, refit) -> None:
+    """``refit=True`` adds one fit on all context bags for the selected candidate's best epoch."""
+    X_train, y_train, X_test = train_test_tensors
+    model = make(refit=refit, lr_grid=(1e-2, 1e-3))
+    fits: list[tuple[int, int | None, int]] = []  # (n_train_bags, max_epochs, best_epoch)
+    inner = getattr(model, method)
+
+    def recording(X, *args, **kwargs):
+        out = inner(X, *args, **kwargs)
+        fits.append((X.shape[0], kwargs.get("max_epochs"), out[-1]))
+        return out
+
+    setattr(model, method, recording)
+    out = model(X_train, y_train, X_test)
+
+    assert torch.allclose(out.exp().sum(dim=-1), torch.ones(1, 2), atol=1e-5)
+    n_train, n_search = y_train.shape[1], 2
+    # One early-stopped fit per grid combo on the 75% split, no epoch override.
+    assert [(n, e) for n, e, _ in fits[:n_search]] == [(9, None)] * n_search
+    if not refit:
+        assert len(fits) == n_search
+        return
+    (n_bags, refit_epochs, _) = fits[n_search]
+    assert len(fits) == n_search + 1
+    assert n_bags == n_train
+    assert refit_epochs in {best for _, _, best in fits[:n_search]}
+
+
+# ---------------------------------------------------------------------------
 # MambaMIL module
 # ---------------------------------------------------------------------------
 

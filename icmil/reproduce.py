@@ -126,6 +126,10 @@ BASELINE_SPECS: dict[str, dict] = {
     ),
     "cluster_tabpfn": dict(max_classes=4, n_clusters=5, n_pca_components=None, max_tabpfn_features=500),
 }
+# Refit variants (not in the paper table): same selection, then retrain on train + validation bags.
+BASELINE_SPECS["abmil_refit"] = dict(BASELINE_SPECS["abmil"], refit=True)
+BASELINE_SPECS["acmil_refit"] = dict(BASELINE_SPECS["acmil"], refit=True)
+REFIT_BASELINES = ("abmil_refit", "acmil_refit")  # opt-in by name, excluded from ``--baselines all``
 
 # Which .h5 each task family needs, as the keyword `create_benchmark_tasks` expects.
 _DATASET_FOR_PREFIX: list[tuple[str, str, str]] = [
@@ -161,6 +165,8 @@ def _baseline_classes() -> dict[str, type]:
         "tabpfn_concat": TabPFNConcatBaseline,
         "tabpfn_subsample": TabPFNSubsampleBaseline,
         "cluster_tabpfn": ClusterTabPFNBaseline,
+        "abmil_refit": ABMILBaseline,
+        "acmil_refit": ACMILBaseline,
     }
 
 
@@ -357,10 +363,14 @@ def main() -> None:
     p.add_argument("--output", default="results", help="Output directory")
     args = p.parse_args()
 
+    baselines = _parse_selection(args.baselines, list(BASELINE_SPECS), "baseline")
+    if args.baselines == "all":
+        baselines = [b for b in baselines if b not in REFIT_BASELINES]
+
     evaluate(
         data_source=args.data,
         model_source=args.models,
-        baselines=_parse_selection(args.baselines, list(BASELINE_SPECS), "baseline"),
+        baselines=baselines,
         icmil_seeds=_parse_selection(args.icmil_seeds, list(SEEDS), "seed"),
         tasks=_parse_selection(args.tasks, TASKS, "task"),
         n_seeds=args.n_seeds,
