@@ -51,6 +51,8 @@ python -m icmil.reproduce
 python -m icmil.reproduce --tasks uci_musk1 --baselines mean_logreg
 ```
 
+The default run also evaluates `icmil_ensemble`, which is not part of the paper table: each trained ICMIL seed averaged over 16 random views of a dataset (a stratified ~90 % of the context bags, with a power transform or a random rotation of the features). It needs no training; see `icmil/baselines/icmil_ensemble.py`.
+
 ## Licence
 
 MIT, see `LICENSE` and `THIRD_PARTY.md`.
