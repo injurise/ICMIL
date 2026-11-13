@@ -35,7 +35,7 @@ def _write_splits(
 
 @pytest.fixture(scope="session")
 def synthetic_datasets(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """A directory of miniature stand-ins for the five shipped benchmark files."""
+    """A directory of miniature stand-ins for the shipped benchmark files."""
     out = tmp_path_factory.mktemp("datasets")
 
     with h5py.File(out / "uci_benchmark.h5", "w") as h5:
@@ -60,6 +60,11 @@ def synthetic_datasets(tmp_path_factory: pytest.TempPathFactory) -> Path:
         h5.attrs["n_train_bags"] = 100
         _write_splits(h5, "draw", 3, 12, 4, 25, seed=40)
 
+    # TAD: one fixed split, no ``variant`` attribute, 25 or 50 features.
+    for i, (filename, n_features) in enumerate((("tad_mil_resnet50.h5", 25), ("tad_mil_resnet50_pca50.h5", 50))):
+        with h5py.File(out / filename, "w") as h5:
+            _write_splits(h5, "split", 1, 12, 4, n_features, seed=50 + i)
+
     return out
 
 
@@ -72,4 +77,6 @@ def synthetic_dataset_kwargs(synthetic_datasets: Path) -> dict[str, str]:
         "mnist_xai_h5_path": str(synthetic_datasets / "mnist_xai_benchmark_100bags.h5"),
         "tcga_fixed_h5_path": str(synthetic_datasets / "tcga_uni2_luad_vs_lusc.h5"),
         "rsna_draws_h5_path": str(synthetic_datasets / "rsna_ich_resnet50_draws_100bags.h5"),
+        "tad_pca25_h5_path": str(synthetic_datasets / "tad_mil_resnet50.h5"),
+        "tad_pca50_h5_path": str(synthetic_datasets / "tad_mil_resnet50_pca50.h5"),
     }

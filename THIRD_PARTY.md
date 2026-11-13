@@ -71,6 +71,7 @@ public datasets. Original sources and terms:
 | `mnist_xai_benchmark_100bags.h5` | MNIST, with MIL rules applied to construct bags |
 | `tcga_uni2_luad_vs_lusc.h5` | TCGA LUAD/LUSC whole-slide images, patch features from a pathology foundation model |
 | `rsna_ich_resnet50_draws_100bags.h5` | RSNA Intracranial Haemorrhage CT, ResNet-50 slice features (via the `torchmil` dataset release) |
+| `tad_mil_resnet50.h5`, `tad_mil_resnet50_pca50.h5` | Traffic Anomaly Detection video dataset, ResNet-50 frame features reduced by PCA to 25 and 50 dimensions (via the `torchmil` dataset release) |
 
-Each retains the licence and usage terms of its source dataset. TCGA and RSNA are
+Each retains the licence and usage terms of its source dataset. TCGA, RSNA and TAD are
 distributed here only as extracted feature vectors, not as images.
