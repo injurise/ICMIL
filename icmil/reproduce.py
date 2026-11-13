@@ -240,10 +240,14 @@ def evaluate(
     device: str,
     output_dir: Path,
     icmil_rows: list[str] | tuple[str, ...] = ICMIL_ROWS,
+    benchmark_tasks: list | None = None,
+    dataset_paths: dict[str, str] | None = None,
 ) -> dict:
     """Run the requested models over the requested tasks and write the outputs.
 
     ``icmil_rows`` picks the rows the ``icmil_seeds`` produce, from :data:`ICMIL_ROWS`.
+    ``benchmark_tasks`` / ``dataset_paths`` replace the tasks and ``.h5`` paths that
+    would otherwise be resolved from ``tasks`` and ``data_source``.
     """
     unknown_rows = sorted(set(icmil_rows) - set(ICMIL_ROWS))
     if unknown_rows:
@@ -251,7 +255,9 @@ def evaluate(
     dev = torch.device(device if device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu"))
     logger.info("Device: %s", dev)
 
-    benchmark_tasks = create_benchmark_tasks(tasks, **_dataset_kwargs(data_source, tasks))
+    if benchmark_tasks is None:
+        dataset_paths = _dataset_kwargs(data_source, tasks)
+        benchmark_tasks = create_benchmark_tasks(tasks, **dataset_paths)
 
     # display label -> (runs, max_features)
     models: dict[str, tuple[list, int | None]] = {}
@@ -304,7 +310,7 @@ def evaluate(
     icmil_meta = {"seeds": icmil_seeds, "rows": list(icmil_rows)} if icmil_seeds and icmil_rows else None
     if icmil_meta and "ensemble" in icmil_rows:
         icmil_meta["ensemble_spec"] = ICMIL_ENSEMBLE_SPEC
-    _write_run_meta(output_dir, dev, models, tasks, n_seeds, timings, _dataset_kwargs(data_source, tasks), icmil_meta)
+    _write_run_meta(output_dir, dev, models, tasks, n_seeds, timings, dataset_paths or {}, icmil_meta)
     logger.info("Wrote %s", ", ".join(sorted(p.name for p in output_dir.glob("*"))))
     return all_results
 

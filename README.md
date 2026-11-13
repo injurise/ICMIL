@@ -66,6 +66,13 @@ python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldse
 
 `tad_pca50` needs the 50-feature checkpoints; the run stops with an error if the selected seeds take fewer features than a task has. They also work on narrower tasks, which are zero-padded. Both the `ICMIL` and the `ICMIL ensemble` rows use the selected seeds.
 
+#### Number of labeled bags
+
+```bash
+python -m icmil.bag_count
+python -m icmil.bag_count --benchmarks rsna_ich --bag-counts 25,100 --baselines none
+```
+
 ### Single-cell benchmarks
 
 COVID and ICB patient classification from scRNA-seq, using the preprocessed data of Do &
