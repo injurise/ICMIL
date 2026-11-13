@@ -84,9 +84,9 @@ def create_benchmark_tasks(names: list[str], **kwargs: str | None) -> list[Bench
             tasks.append(TCGAFixedTask(h5_path=h5_path))
 
         elif name.startswith("tad_"):
-            from icmil.benchmarks.tcga import TCGAFixedTask
+            from icmil.benchmarks.tad import TADTask
 
-            tasks.append(TCGAFixedTask(h5_path=h5_path, name=name))
+            tasks.append(TADTask(variant=name.removeprefix("tad_"), h5_path=h5_path))
 
         elif name == "rsna_ich_draws":
             from icmil.benchmarks.rsna import RSNAMILDrawsTask

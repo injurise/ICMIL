@@ -6,18 +6,15 @@ foundation model.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from pathlib import Path
 
 import h5py
-import numpy as np
+
+from icmil.benchmarks.fixed_split import FixedSplitTask
 
 
-class TCGAFixedTask:
+class TCGAFixedTask(FixedSplitTask):
     """Iterate over the frozen splits of a fixed TCGA benchmark.
-
-    The TAD files share the ``split_*`` layout and are read by this class too,
-    with ``name`` given (they carry no ``variant`` attribute).
 
     H5 layout::
 
@@ -27,43 +24,10 @@ class TCGAFixedTask:
         split_1/...
     """
 
-    def __init__(self, h5_path: str | Path, name: str | None = None) -> None:
-        self._h5_path = Path(h5_path)
-        if not self._h5_path.exists():
-            raise FileNotFoundError(f"TCGA benchmark H5 not found: {self._h5_path}")
+    def __init__(self, h5_path: str | Path) -> None:
+        super().__init__(h5_path, name="tcga")
         with h5py.File(self._h5_path, "r") as h5:
-            if name is None:
-                variant = h5.attrs["variant"]
-                if isinstance(variant, bytes):
-                    variant = variant.decode()
-                name = f"tcga_{variant}"
-            self._name = name
-            split_keys = [k for k in h5 if k.startswith("split_")]
-            if not split_keys:
-                raise ValueError(f"{h5_path} contains no split_* groups")
-            self._n_splits = len(split_keys)
-            self._n_features = int(h5["split_0"]["X_train"].shape[-1])
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def n_features(self) -> int:
-        return self._n_features
-
-    @property
-    def n_splits(self) -> int:
-        return self._n_splits
-
-    def sample_datasets(self) -> Iterator[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
-        """Yield (X_train, y_train, X_test, y_test) for every ``split_*`` group."""
-        with h5py.File(self._h5_path, "r") as h5:
-            for key in sorted(k for k in h5 if k.startswith("split_")):
-                sg = h5[key]
-                yield (
-                    sg["X_train"][:].astype(np.float32),
-                    sg["y_train"][:].astype(np.int64),
-                    sg["X_test"][:].astype(np.float32),
-                    sg["y_test"][:].astype(np.int64),
-                )
+            variant = h5.attrs["variant"]
+        if isinstance(variant, bytes):
+            variant = variant.decode()
+        self._name = f"tcga_{variant}"

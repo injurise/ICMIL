@@ -41,7 +41,7 @@ def test_mnist_task_names_carry_their_bag_count(synthetic_dataset_kwargs: dict) 
     assert task.name == "mnist_xai_smil_100bags"
 
 
-def test_tad_tasks_reuse_the_fixed_split_reader(synthetic_dataset_kwargs: dict) -> None:
+def test_tad_tasks_are_opt_in(synthetic_dataset_kwargs: dict) -> None:
     """TAD is registered and selectable, but is not one of the paper's twelve tasks."""
     assert set(TAD_TASKS) <= set(TASK_NAMES)
     assert not set(TAD_TASKS) & set(TASKS)
