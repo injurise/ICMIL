@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 MNIST_XAI_VARIANTS = ("smil", "four_bags", "pos_neg", "adjacent_pairs")
 UCI_VARIANTS = ("musk1", "musk2", "letters", "hepmass")
 ANDREWS_VARIANTS = ("fox", "tiger", "elephant")
+TAD_VARIANTS = ("pca25", "pca50")
 
 # Every task this repository can evaluate, and the keyword naming the .h5 it needs.
 TASK_H5_KWARG: dict[str, str] = {
@@ -19,6 +20,7 @@ TASK_H5_KWARG: dict[str, str] = {
     **{f"uci_{v}": "uci_h5_path" for v in UCI_VARIANTS},
     **{f"mnist_xai_{v}": "mnist_xai_h5_path" for v in MNIST_XAI_VARIANTS},
     **{f"andrews_{v}": "andrews_h5_path" for v in ANDREWS_VARIANTS},
+    **{f"tad_{v}": f"tad_{v}_h5_path" for v in TAD_VARIANTS},
 }
 TASK_NAMES: tuple[str, ...] = tuple(TASK_H5_KWARG)
 
@@ -40,7 +42,7 @@ def create_benchmark_tasks(names: list[str], **kwargs: str | None) -> list[Bench
         names: Task names, each one of :data:`TASK_NAMES`.
         **kwargs: Paths to the shipped benchmark files — ``uci_h5_path``,
             ``andrews_h5_path``, ``mnist_xai_h5_path``, ``tcga_fixed_h5_path``,
-            ``rsna_draws_h5_path``. Only those needed by ``names`` are read.
+            ``rsna_draws_h5_path``, ``tad_pca25_h5_path``, ``tad_pca50_h5_path``. Only those needed by ``names`` are read.
 
     Returns:
         One task per requested name, in the same order.
@@ -80,6 +82,11 @@ def create_benchmark_tasks(names: list[str], **kwargs: str | None) -> list[Bench
             from icmil.benchmarks.tcga import TCGAFixedTask
 
             tasks.append(TCGAFixedTask(h5_path=h5_path))
+
+        elif name.startswith("tad_"):
+            from icmil.benchmarks.tcga import TCGAFixedTask
+
+            tasks.append(TCGAFixedTask(h5_path=h5_path, name=name))
 
         elif name == "rsna_ich_draws":
             from icmil.benchmarks.rsna import RSNAMILDrawsTask

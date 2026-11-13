@@ -16,6 +16,9 @@ import numpy as np
 class TCGAFixedTask:
     """Iterate over the frozen splits of a fixed TCGA benchmark.
 
+    The TAD files share the ``split_*`` layout and are read by this class too,
+    with ``name`` given (they carry no ``variant`` attribute).
+
     H5 layout::
 
         attrs: {variant, patch_fm, projects, n_patients_per_project, bag_size,
@@ -24,15 +27,17 @@ class TCGAFixedTask:
         split_1/...
     """
 
-    def __init__(self, h5_path: str | Path) -> None:
+    def __init__(self, h5_path: str | Path, name: str | None = None) -> None:
         self._h5_path = Path(h5_path)
         if not self._h5_path.exists():
             raise FileNotFoundError(f"TCGA benchmark H5 not found: {self._h5_path}")
         with h5py.File(self._h5_path, "r") as h5:
-            variant = h5.attrs["variant"]
-            if isinstance(variant, bytes):
-                variant = variant.decode()
-            self._name = f"tcga_{variant}"
+            if name is None:
+                variant = h5.attrs["variant"]
+                if isinstance(variant, bytes):
+                    variant = variant.decode()
+                name = f"tcga_{variant}"
+            self._name = name
             split_keys = [k for k in h5 if k.startswith("split_")]
             if not split_keys:
                 raise ValueError(f"{h5_path} contains no split_* groups")

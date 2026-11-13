@@ -53,6 +53,13 @@ python -m icmil.reproduce --tasks uci_musk1 --baselines mean_logreg
 
 To also train ABMIL and ACMIL on the validation bags after model selection (refit), run `python -m icmil.reproduce --baselines abmil_refit,acmil_refit`.
 
+TAD is not in the paper table and not part of the default run:
+
+```bash
+python -m icmil.reproduce --tasks tad_pca25
+python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm  # 50-feature checkpoints
+```
+
 ## Licence
 
 MIT, see `LICENSE` and `THIRD_PARTY.md`.

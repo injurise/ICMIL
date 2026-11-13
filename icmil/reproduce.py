@@ -25,7 +25,7 @@ from pathlib import Path
 
 import torch
 
-from icmil.artifacts import SEEDS, resolve_dataset
+from icmil.artifacts import SEEDS, SEEDS_50F, resolve_dataset
 from icmil.benchmarks import (
     aggregate_outer_metrics,
     aggregate_split_metrics,
@@ -52,6 +52,10 @@ TASKS: list[str] = [
     "andrews_tiger",
     "andrews_elephant",
 ]
+
+# TAD (traffic anomaly detection, not in the paper table) on 25 and 50 PCA features;
+# run with ``--tasks``. ``tad_pca50`` needs ``--icmil-seeds`` from ``SEEDS_50F``.
+TAD_TASKS: list[str] = ["tad_pca25", "tad_pca50"]
 
 # Baseline hyper-parameters as reported. ``seed`` is set per run (0..n_seeds-1).
 BASELINE_SPECS: dict[str, dict] = {
@@ -138,6 +142,8 @@ _DATASET_FOR_PREFIX: list[tuple[str, str, str]] = [
     ("uci_", "uci", "uci_h5_path"),
     ("andrews_", "andrews", "andrews_h5_path"),
     ("mnist_xai_", "mnist_xai", "mnist_xai_h5_path"),
+    ("tad_pca25", "tad_pca25", "tad_pca25_h5_path"),
+    ("tad_pca50", "tad_pca50", "tad_pca50_h5_path"),
 ]
 
 
@@ -338,16 +344,20 @@ def _write_run_meta(
     (output_dir / "run_meta.json").write_text(json.dumps(meta, indent=2))
 
 
-def _parse_selection(raw: str, all_values: list[str], what: str) -> list[str]:
-    """Resolve an ``all`` / ``none`` / comma-list argument, rejecting unknown names."""
+def _parse_selection(raw: str, all_values: list[str], what: str, extra: tuple[str, ...] = ()) -> list[str]:
+    """Resolve an ``all`` / ``none`` / comma-list argument, rejecting unknown names.
+
+    ``extra`` values can be named in a comma list but are not part of ``all``.
+    """
     if raw == "none":
         return []
     if raw == "all":
         return list(all_values)
     chosen = [v.strip() for v in raw.split(",") if v.strip()]
-    unknown = [v for v in chosen if v not in all_values]
+    valid = [*all_values, *extra]
+    unknown = [v for v in chosen if v not in valid]
     if unknown:
-        raise SystemExit(f"Unknown {what}: {sorted(unknown)}. Valid: {sorted(all_values)}")
+        raise SystemExit(f"Unknown {what}: {sorted(unknown)}. Valid: {sorted(valid)}")
     return chosen
 
 
@@ -371,8 +381,8 @@ def main() -> None:
         data_source=args.data,
         model_source=args.models,
         baselines=baselines,
-        icmil_seeds=_parse_selection(args.icmil_seeds, list(SEEDS), "seed"),
-        tasks=_parse_selection(args.tasks, TASKS, "task"),
+        icmil_seeds=_parse_selection(args.icmil_seeds, list(SEEDS), "seed", extra=SEEDS_50F),
+        tasks=_parse_selection(args.tasks, TASKS, "task", extra=tuple(TAD_TASKS)),
         n_seeds=args.n_seeds,
         device=args.device,
         output_dir=Path(args.output),

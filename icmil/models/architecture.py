@@ -95,6 +95,7 @@ class ICMIL(nn.Module):
         num_final_col_row_layers: int = 0,
         gradient_checkpointing: bool = False,
         bag_chunk_size: int = 32,
+        final_norm: bool = True,
     ) -> None:
         super().__init__()
         self.in_features = in_features
@@ -127,7 +128,8 @@ class ICMIL(nn.Module):
             ]
         )
         # Applied to the bag label token before decoding (present in trained checkpoints).
-        self.final_norm = LowerPrecisionLayerNorm(embedding_size)
+        # The 50-feature models (``icmil.artifacts.SEEDS_50F``) were trained without it.
+        self.final_norm = LowerPrecisionLayerNorm(embedding_size) if final_norm else nn.Identity()
 
     def forward(self, X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor) -> torch.Tensor:
         eval_bag_position = X_train.shape[1]

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from icmil.artifacts import SEEDS
+from icmil.artifacts import SEEDS, SEEDS_50F
 from icmil.model import ICMIL_ARCH, ICMILInference, build_icmil, load_icmil
 from tests.conftest import CHECKPOINTS, requires_artifacts
 
@@ -103,6 +103,15 @@ def test_released_checkpoints_load_strictly(seed: str) -> None:
     assert isinstance(model, ICMILInference)
     assert not model.model.training, "the loader must return a model in eval mode"
     assert model.model.in_features == 25
+
+
+@requires_artifacts
+@pytest.mark.parametrize("seed", SEEDS_50F)
+def test_50_feature_checkpoints_load_strictly(seed: str) -> None:
+    """The ``tad_pca50`` models: 50 input features, trained without ``final_norm``."""
+    model = load_icmil(seed=seed, device="cpu")
+    assert model.model.in_features == 50
+    assert isinstance(model.model.final_norm, torch.nn.Identity)
 
 
 @requires_artifacts
