@@ -178,6 +178,10 @@ class ACMILBaseline(nn.Module):
     ``val_fraction == 0`` the first entry of each grid is used and the model
     trains on all context bags for ``epochs``.
 
+    With ``refit=True`` the selected early-stopped checkpoint is discarded and one
+    model is retrained from scratch on all context bags (train + validation) at
+    the winning combo for the winner's best epoch, with no early stopping.
+
     The search space and optimizer match
     :class:`~icmil.baselines.abmil_baseline.ABMILBaseline` and
     :class:`~icmil.baselines.dsmil_baseline.DSMILBaseline` — the same
@@ -204,6 +208,7 @@ class ACMILBaseline(nn.Module):
         patience: int = 20,
         min_delta: float = 1e-4,
         val_fraction: float = 0.1,
+        refit: bool = False,
     ) -> None:
         super().__init__()
         self.max_classes = max_classes
@@ -221,6 +226,7 @@ class ACMILBaseline(nn.Module):
         self.patience = patience
         self.min_delta = min_delta
         self.val_fraction = val_fraction
+        self.refit = refit
 
     def train(self, mode: bool = True) -> ACMILBaseline:
         """No-op so the eval harness cannot flip the wrapper into train mode.
@@ -253,13 +259,16 @@ class ACMILBaseline(nn.Module):
         seed: int,
         X_val: torch.Tensor | None = None,
         y_val: torch.Tensor | None = None,
-    ) -> ACMILGatedAttention:
-        """Train one ACMIL model on the composite loss.
+        max_epochs: int | None = None,
+    ) -> tuple[ACMILGatedAttention, int]:
+        """Train one ACMIL model on the composite loss; return ``(model, best_epoch)``.
 
         With ``X_val``/``y_val`` runs early stopping on val bag-CE (masking off
-        for the val forward) and returns the best-val checkpoint. Otherwise
-        trains ``self.epochs`` with no early stopping.
+        for the val forward) and returns the best-val checkpoint plus its
+        1-indexed epoch. Otherwise trains ``max_epochs`` (default ``self.epochs``)
+        with no early stopping.
         """
+        budget = max_epochs if max_epochs is not None else self.epochs
         torch.manual_seed(seed)
         model = self._make_model(in_dim, X.device, dropout)
         opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
@@ -269,10 +278,11 @@ class ACMILBaseline(nn.Module):
         do_es = X_val is not None and y_val is not None
         best_val = float("inf")
         best_state: dict[str, torch.Tensor] | None = None
+        best_epoch_idx = 0
         wait = 0
 
         model.train()
-        for _epoch in range(self.epochs):
+        for epoch in range(budget):
             perm = torch.randperm(n, device=X.device)
             for start in range(0, n, bs):
                 idx = perm[start : start + bs]
@@ -290,6 +300,7 @@ class ACMILBaseline(nn.Module):
                 if val_loss < best_val - self.min_delta:
                     best_val = val_loss
                     best_state = copy.deepcopy(model.state_dict())
+                    best_epoch_idx = epoch
                     wait = 0
                 else:
                     wait += 1
@@ -298,7 +309,7 @@ class ACMILBaseline(nn.Module):
 
         if best_state is not None:
             model.load_state_dict(best_state)
-        return model.eval()
+        return model.eval(), (best_epoch_idx + 1 if do_es else budget)
 
     @torch.no_grad()
     def _slide_logits(self, model: ACMILGatedAttention, X: torch.Tensor) -> torch.Tensor:
@@ -323,15 +334,25 @@ class ACMILBaseline(nn.Module):
 
             best_val_ce = float("inf")
             best_model: ACMILGatedAttention | None = None
+            best_hp: tuple[float, float, float, int] | None = None
             for lr, wd, dropout in itertools.product(self.lr_grid, self.wd_grid, self.dropout_grid):
                 logger.info("ACMIL: training lr=%g wd=%g dropout=%g", lr, wd, dropout)
-                m = self._train_once(X_tr_s, y_tr_s, in_dim, lr, wd, dropout, seed=self.seed, X_val=X_va, y_val=y_va)
+                m, best_epoch = self._train_once(
+                    X_tr_s, y_tr_s, in_dim, lr, wd, dropout, seed=self.seed, X_val=X_va, y_val=y_va
+                )
                 val_ce = F.cross_entropy(self._slide_logits(m, X_va), y_va).item()
                 if val_ce < best_val_ce:
                     best_val_ce = val_ce
                     best_model = m
+                    best_hp = (lr, wd, dropout, best_epoch)
+            if self.refit and best_hp is not None:
+                lr, wd, dropout, best_epoch = best_hp
+                logger.info("ACMIL refit: lr=%g wd=%g dropout=%g for %d epochs", lr, wd, dropout, best_epoch)
+                best_model, _ = self._train_once(
+                    X_tr, y_tr, in_dim, lr, wd, dropout, seed=self.seed, max_epochs=best_epoch
+                )
         else:
-            best_model = self._train_once(
+            best_model, _ = self._train_once(
                 X_tr, y_tr, in_dim, self.lr_grid[0], self.wd_grid[0], self.dropout_grid[0], seed=self.seed
             )
 

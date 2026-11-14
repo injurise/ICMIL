@@ -51,6 +51,10 @@ python -m icmil.reproduce
 python -m icmil.reproduce --tasks uci_musk1 --baselines mean_logreg
 ```
 
+The default run also evaluates pooled-bag TabPFN baselines (`mean_tabpfn*`, `summ_tabpfn*`), which are not part of the paper table. They need the TabPFN v2.5 and v3.5 weights, which are gated: accept the licenses of `Prior-Labs/tabpfn_2_5` and `Prior-Labs/tabpfn_3_5` on Hugging Face and log in before the first run.
+
+To also train ABMIL and ACMIL on the validation bags after model selection (refit), run `python -m icmil.reproduce --baselines abmil_refit,acmil_refit`.
+
 The default run also evaluates `icmil_ensemble`, which is not part of the paper table: each trained ICMIL seed averaged over 16 random views of a dataset (a stratified ~90 % of the context bags, with a power transform or a random rotation of the features). It needs no training; see `icmil/baselines/icmil_ensemble.py`.
 
 ## Licence
