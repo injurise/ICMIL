@@ -6,12 +6,13 @@ Usage:
     python -m icmil.reproduce --baselines mean_logreg,abmil
     python -m icmil.reproduce --baselines summ_tabpfn35 --icmil-seeds none
     python -m icmil.reproduce --baselines none --icmil-seeds c5trd795
-    python -m icmil.reproduce --baselines icmil_ensemble --icmil-seeds none
+    python -m icmil.reproduce --baselines none --icmil-rows ensemble
+    python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm
 
 Rows are models, columns are tasks, cells are AUROC as ``mean ± SEM``. Each row
 aggregates several independent runs and the ± is the spread **across** them: for
-ICMIL, across the three trained seeds; for a baseline, across ``--n-seeds``
-random seeds. Within a run the score is the mean over the task's frozen splits.
+ICMIL and the ICMIL view ensemble, across the trained seeds in ``--icmil-seeds``;
+for a baseline, across ``--n-seeds`` random seeds. Within a run the score is the mean over the task's frozen splits.
 
 Alongside the table this writes ``results.json`` (every metric at full
 precision) and ``run_meta.json`` (versions, device, artifact hashes).
@@ -140,18 +141,21 @@ BASELINE_SPECS: dict[str, dict] = {
     "summ_tabpfn3": dict(max_classes=4),
     "mean_tabpfn35": dict(max_classes=4),
     "summ_tabpfn35": dict(max_classes=4),
-    # The trained ICMIL seeds, each averaged over random views of a dataset. Not part of the paper table.
-    "icmil_ensemble": dict(
-        n_members=16,
-        transforms=("power", "rotation"),
-        bag_fraction_mean=0.9,
-        bag_fraction_std=0.01,
-    ),
 }
 # Refit variants (not in the paper table): same selection, then retrain on train + validation bags.
 BASELINE_SPECS["abmil_refit"] = dict(BASELINE_SPECS["abmil"], refit=True)
 BASELINE_SPECS["acmil_refit"] = dict(BASELINE_SPECS["acmil"], refit=True)
 REFIT_BASELINES = ("abmil_refit", "acmil_refit")  # opt-in by name, excluded from ``--baselines all``
+
+# The rows each selected ICMIL seed contributes: the model itself, and the model averaged over
+# random views of each dataset (``icmil.baselines.icmil_ensemble``, not part of the paper table).
+ICMIL_ROWS: tuple[str, ...] = ("plain", "ensemble")
+ICMIL_ENSEMBLE_SPEC: dict = dict(
+    n_members=16,
+    transforms=("power", "rotation"),
+    bag_fraction_mean=0.9,
+    bag_fraction_std=0.01,
+)
 
 # Which .h5 each task family needs, as the keyword `create_benchmark_tasks` expects.
 _DATASET_FOR_PREFIX: list[tuple[str, str, str]] = [
@@ -230,8 +234,15 @@ def evaluate(
     n_seeds: int,
     device: str,
     output_dir: Path,
+    icmil_rows: list[str] | tuple[str, ...] = ICMIL_ROWS,
 ) -> dict:
-    """Run the requested models over the requested tasks and write the outputs."""
+    """Run the requested models over the requested tasks and write the outputs.
+
+    ``icmil_rows`` picks the rows the ``icmil_seeds`` produce, from :data:`ICMIL_ROWS`.
+    """
+    unknown_rows = sorted(set(icmil_rows) - set(ICMIL_ROWS))
+    if unknown_rows:
+        raise ValueError(f"Unknown ICMIL row(s) {unknown_rows}; expected some of {ICMIL_ROWS}")
     dev = torch.device(device if device != "auto" else ("cuda" if torch.cuda.is_available() else "cpu"))
     logger.info("Device: %s", dev)
 
@@ -241,26 +252,23 @@ def evaluate(
     models: dict[str, tuple[list, int | None]] = {}
     classes = _baseline_classes() if baselines else {}
     for name in baselines:
-        if name == "icmil_ensemble":
-            # Not fitted per split: run ``s`` wraps trained seed ``s`` (cycling through the three).
-            from icmil.baselines.icmil_ensemble import ICMILEnsemble
-
-            seeds = [SEEDS[s % len(SEEDS)] for s in range(n_seeds)]
-            runs = [
-                ICMILEnsemble(load_icmil(model_source, seed, dev).model, seed=s, **BASELINE_SPECS[name])
-                for s, seed in enumerate(seeds)
-            ]
-            models[name] = (runs, None)
-            continue
         cls = classes[name]
         # Baselines accept any feature width, so they see the raw features:
         # harness-side zero padding would distort their summary statistics.
         models[name] = ([cls(seed=s, **BASELINE_SPECS[name]).to(dev) for s in range(n_seeds)], None)
-    if icmil_seeds:
+    if icmil_seeds and icmil_rows:
         runs = [load_icmil(source=model_source, seed=s, device=dev) for s in icmil_seeds]
         _check_icmil_widths(dict(zip(icmil_seeds, runs)), benchmark_tasks)
-        label = "ICMIL" if len(icmil_seeds) > 1 else f"ICMIL (seed {icmil_seeds[0]})"
-        models[label] = (runs, runs[0].model.in_features)
+        suffix = "" if len(icmil_seeds) > 1 else f" (seed {icmil_seeds[0]})"
+        if "plain" in icmil_rows:
+            models[f"ICMIL{suffix}"] = (runs, runs[0].model.in_features)
+        if "ensemble" in icmil_rows:
+            from icmil.baselines.icmil_ensemble import ICMILEnsemble
+
+            # One ensemble per seed, its views seeded by position. The ensemble pads to the
+            # model's width itself, so the harness passes the raw features.
+            ensembles = [ICMILEnsemble(run.model, seed=i, **ICMIL_ENSEMBLE_SPEC) for i, run in enumerate(runs)]
+            models[f"ICMIL ensemble{suffix}"] = (ensembles, None)
 
     all_results: dict[str, dict] = {}
     timings: dict[str, dict[str, float]] = {}
@@ -288,7 +296,10 @@ def evaluate(
     output_dir.mkdir(parents=True, exist_ok=True)
     _write_table(all_results, output_dir, {label: len(runs) for label, (runs, _) in models.items()})
     (output_dir / "results.json").write_text(json.dumps(all_results, indent=2, default=float))
-    _write_run_meta(output_dir, dev, models, tasks, n_seeds, timings, _dataset_kwargs(data_source, tasks))
+    icmil_meta = {"seeds": icmil_seeds, "rows": list(icmil_rows)} if icmil_seeds and icmil_rows else None
+    if icmil_meta and "ensemble" in icmil_rows:
+        icmil_meta["ensemble_spec"] = ICMIL_ENSEMBLE_SPEC
+    _write_run_meta(output_dir, dev, models, tasks, n_seeds, timings, _dataset_kwargs(data_source, tasks), icmil_meta)
     logger.info("Wrote %s", ", ".join(sorted(p.name for p in output_dir.glob("*"))))
     return all_results
 
@@ -369,6 +380,7 @@ def _write_run_meta(
     n_seeds: int,
     timings: dict,
     dataset_paths: dict[str, str],
+    icmil: dict | None = None,
 ) -> None:
     """Record metadata."""
     import hashlib
@@ -393,6 +405,7 @@ def _write_run_meta(
         "tasks": tasks,
         "n_seeds": n_seeds,
         "baseline_specs": {k: v for k, v in BASELINE_SPECS.items() if k in models},
+        "icmil": icmil,
         "device": str(device),
         "platform": platform.platform(),
         "python": platform.python_version(),
@@ -434,6 +447,9 @@ def main() -> None:
     p.add_argument("--models", default=None, help="Directory of ICMIL .pt checkpoints (default: ./checkpoints)")
     p.add_argument("--baselines", default="all", help="'all', 'none', or a comma list")
     p.add_argument("--icmil-seeds", default="all", help="'all', 'none', or a comma list of seeds")
+    p.add_argument(
+        "--icmil-rows", default="all", help="Rows per ICMIL seed set: 'all', 'none', or a comma list of plain,ensemble"
+    )
     p.add_argument("--tasks", default="all", help="'all' or a comma list of task names")
     p.add_argument("--n-seeds", type=int, default=3, help="Random seeds per baseline")
     p.add_argument("--device", default="auto", choices=["auto", "cpu", "cuda"])
@@ -453,6 +469,7 @@ def main() -> None:
         n_seeds=args.n_seeds,
         device=args.device,
         output_dir=Path(args.output),
+        icmil_rows=_parse_selection(args.icmil_rows, list(ICMIL_ROWS), "ICMIL row"),
     )
 
 

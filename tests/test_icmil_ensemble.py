@@ -172,41 +172,114 @@ def test_power_transform_stays_finite_outside_the_fitted_range() -> None:
     assert out[0, 1] < fitted[:, 1].min()  # large but finite results are kept as they are
 
 
-def test_reproduce_row_wraps_the_trained_seeds(tmp_path) -> None:
-    """``--baselines icmil_ensemble`` loads one checkpoint per run and reports a row like any baseline."""
+def _tiny_artifacts(tmp_path, seeds: tuple[str, ...], model_width: int, task_width: int):
+    """Tiny untrained checkpoints named after ``seeds`` and a two-split ``uci_musk1`` file."""
     import h5py
 
-    from icmil.artifacts import SEEDS
     from icmil.model import ICMIL_ARCH, build_icmil
-    from icmil.reproduce import evaluate
 
-    arch = {**ICMIL_ARCH, "embedding_size": 16, "mlp_hidden_size": 32, "num_column_row_iterations": 1}
+    arch = {
+        **ICMIL_ARCH,
+        "in_features": model_width,
+        "embedding_size": 16,
+        "mlp_hidden_size": 32,
+        "num_column_row_iterations": 1,
+    }
     checkpoints = tmp_path / "checkpoints"
-    checkpoints.mkdir()
-    for seed in SEEDS:
+    checkpoints.mkdir(exist_ok=True)
+    for seed in seeds:
         torch.save(
             {"model_state_dict": build_icmil(arch).state_dict(), "arch": arch}, checkpoints / f"icmil-{seed}.pt"
         )
 
     datasets = tmp_path / "datasets"
-    datasets.mkdir()
+    datasets.mkdir(exist_ok=True)
     with h5py.File(datasets / "uci_benchmark.h5", "w") as h5:
         for split in range(2):
             group = h5.create_group(f"musk1/split_{split}")
             for name, n_bags in (("train", N_TRAIN), ("test", N_TEST + 1)):
-                group.create_dataset(f"X_{name}", data=np.random.default_rng(split).normal(size=(n_bags, 4, 25)))
+                X = np.random.default_rng(split).normal(size=(n_bags, 4, task_width))
+                group.create_dataset(f"X_{name}", data=X)
                 group.create_dataset(f"y_{name}", data=np.arange(n_bags) % 2)
+    return datasets, checkpoints
+
+
+@pytest.mark.parametrize("family", ["SEEDS", "SEEDS_50F"])
+def test_reproduce_ensemble_row_wraps_any_seed_family(tmp_path, family: str) -> None:
+    """The ensemble row wraps the ``--icmil-seeds`` models, whatever their width."""
+    import icmil.artifacts
+    from icmil.reproduce import evaluate
+
+    seeds = getattr(icmil.artifacts, family)
+    width = 25 if family == "SEEDS" else 50
+    datasets, checkpoints = _tiny_artifacts(tmp_path, seeds, model_width=width, task_width=width)
 
     results = evaluate(
         data_source=datasets,
         model_source=checkpoints,
-        baselines=["icmil_ensemble"],
-        icmil_seeds=[],
+        baselines=[],
+        icmil_seeds=list(seeds[:2]),
+        icmil_rows=["ensemble"],
         tasks=["uci_musk1"],
-        n_seeds=2,
+        n_seeds=3,  # baselines only: the ensemble has one run per ICMIL seed
         device="cpu",
         output_dir=tmp_path / "out",
     )
-    metrics = results["icmil_ensemble"]["uci_musk1"]
+    assert list(results) == ["ICMIL ensemble"]
+    metrics = results["ICMIL ensemble"]["uci_musk1"]
     assert 0.0 <= metrics["roc_auc"] <= 1.0
     assert metrics["n_outer"] == 2
+
+
+def test_reproduce_ensemble_row_rejects_seeds_narrower_than_the_task(tmp_path) -> None:
+    """The ensemble would truncate the features too, so it shares the plain row's width check."""
+    from icmil.artifacts import SEEDS
+    from icmil.reproduce import evaluate
+
+    datasets, checkpoints = _tiny_artifacts(tmp_path, SEEDS, model_width=25, task_width=50)
+    with pytest.raises(ValueError, match="more features than the ICMIL seeds"):
+        evaluate(
+            data_source=datasets,
+            model_source=checkpoints,
+            baselines=[],
+            icmil_seeds=list(SEEDS),
+            icmil_rows=["ensemble"],
+            tasks=["uci_musk1"],
+            n_seeds=1,
+            device="cpu",
+            output_dir=tmp_path / "out",
+        )
+
+
+@pytest.mark.parametrize(
+    ("rows", "labels"),
+    [
+        (("plain", "ensemble"), ["ICMIL (seed c5trd795)", "ICMIL ensemble (seed c5trd795)"]),
+        (["plain"], ["ICMIL (seed c5trd795)"]),
+        (["ensemble"], ["ICMIL ensemble (seed c5trd795)"]),
+    ],
+)
+def test_reproduce_icmil_rows_select_plain_and_ensemble(tmp_path, rows, labels: list[str]) -> None:
+    """By default a seed set gives both rows; ``icmil_rows`` keeps either one."""
+    from icmil.reproduce import evaluate
+
+    datasets, checkpoints = _tiny_artifacts(tmp_path, ("c5trd795",), model_width=25, task_width=25)
+    results = evaluate(
+        data_source=datasets,
+        model_source=checkpoints,
+        baselines=[],
+        icmil_seeds=["c5trd795"],
+        icmil_rows=rows,
+        tasks=["uci_musk1"],
+        n_seeds=1,
+        device="cpu",
+        output_dir=tmp_path / "out",
+    )
+    assert list(results) == labels
+
+
+def test_reproduce_unknown_icmil_row_is_rejected(tmp_path) -> None:
+    from icmil.reproduce import evaluate
+
+    with pytest.raises(ValueError, match="Unknown ICMIL row"):
+        evaluate(None, None, [], ["c5trd795"], ["uci_musk1"], 1, "cpu", tmp_path, icmil_rows=["ensembel"])
