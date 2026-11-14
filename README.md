@@ -66,8 +66,8 @@ COVID and ICB patient classification from scRNA-seq, using the preprocessed data
 Lähdesmäki (2025) [[1]](#references). Not in the paper table; the data are not redistributed.
 
 ```bash
-# 1. Download the data and build datasets/scrna_{covid,icb}.h5
-pip install -e ".[scrna]"
+# 1. Download covid.h5ad and icb.h5ad from the Google Drive folder linked in
+#    https://github.com/minhchaudo/hier-mil into datasets/raw/, then build datasets/scrna_{covid,icb}.h5
 python -m icmil.prepare_scrna
 
 # 2. Evaluate (PCA 50 needs the 50-feature checkpoints)

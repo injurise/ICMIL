@@ -43,7 +43,7 @@ def scrna_h5(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     raw.mkdir()
     _write_h5ad(raw / "covid.h5ad")
     digest = hashlib.sha256((raw / "covid.h5ad").read_bytes()).hexdigest()
-    monkeypatch.setitem(prepare_scrna.SOURCES, "covid", ("unused", digest, N_CELLS))
+    monkeypatch.setitem(prepare_scrna.SOURCES, "covid", (digest, N_CELLS))
     return prepare_scrna.build("covid", raw, tmp_path / "datasets")
 
 
@@ -61,9 +61,11 @@ def test_build_writes_bags_labels_and_folds(scrna_h5: Path) -> None:
 
 def test_build_rejects_a_changed_source(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _write_h5ad(tmp_path / "covid.h5ad")
-    monkeypatch.setitem(prepare_scrna.SOURCES, "covid", ("unused", "0" * 64, N_CELLS))
+    monkeypatch.setitem(prepare_scrna.SOURCES, "covid", ("0" * 64, N_CELLS))
     with pytest.raises(ValueError, match="sha256"):
         prepare_scrna.build("covid", tmp_path, tmp_path / "datasets")
+    with pytest.raises(FileNotFoundError, match="drive.google.com"):
+        prepare_scrna.build("icb", tmp_path, tmp_path / "datasets")
 
 
 def test_patients_in_order_of_first_appearance(tmp_path: Path) -> None:
