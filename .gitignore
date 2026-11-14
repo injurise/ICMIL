@@ -1,4 +1,6 @@
 # Benchmark datasets and model checkpoints
+datasets/raw/
+datasets/scrna_*.h5
 results/
 
 # Python

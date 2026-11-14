@@ -23,11 +23,14 @@ dependencies = [
 [project.optional-dependencies]
 # Synthetic prior generation (icmil.datagen). Not needed to reproduce the table.
 datagen = ["tabicl==0.1.*", "scipy>=1.11"]
+# icmil.prepare_scrna
+scrna = ["gdown>=5"]
 
 [project.scripts]
 icmil-reproduce = "icmil.reproduce:main"
 icmil-train = "icmil.train:main"
 icmil-datagen = "icmil.datagen.generate:main"
+icmil-prepare-scrna = "icmil.prepare_scrna:main"
 
 [dependency-groups]
 dev = ["pytest>=8.3.5", "ruff==0.16.*"]

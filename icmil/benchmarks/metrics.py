@@ -314,6 +314,9 @@ def per_split_metrics(
         unit="split",
         leave=False,
     )
+    # Tasks with ``splits_per_repeat`` are scored on the pooled predictions of each repetition.
+    splits_per_repeat = getattr(task, "splits_per_repeat", None)
+    pooled: list[tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]] = []
     for split_idx, (X_train, y_train, X_test, y_test) in pbar:
         X_train_pad = _pad_features(X_train, max_features)
         X_test_pad = _pad_features(X_test, max_features)
@@ -338,7 +341,13 @@ def per_split_metrics(
             preds = logits_2d.argmax(dim=-1).cpu().numpy()
             probs = torch.softmax(logits_2d, dim=-1).cpu().numpy()
 
-        per_split.append(compute_split_metrics(y_test, preds, probs, y_train))
+        if splits_per_repeat is None:
+            per_split.append(compute_split_metrics(y_test, preds, probs, y_train))
+        else:
+            pooled.append((y_test, preds, probs, y_train))
+            if len(pooled) == splits_per_repeat:
+                per_split.append(compute_split_metrics(*(np.concatenate(arrays) for arrays in zip(*pooled))))
+                pooled = []
         timings.append(
             {
                 "elapsed_s": float(elapsed),
