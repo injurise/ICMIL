@@ -62,46 +62,29 @@ python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldse
 
 ### Single-cell benchmarks
 
-Patient classification from scRNA-seq on two datasets of Do & Lähdesmäki (2025): COVID (50
-patients, 35 COVID-19 vs 15 controls) and ICB (57 patients, 19 responders vs 38 non-responders to
-immune checkpoint blockade). They are not in the paper table.
-
-#### Constructing the datasets
-
-The data are not redistributed here. Build them once:
+COVID and ICB patient classification from scRNA-seq, using the preprocessed data of Do &
+Lähdesmäki (2025) [[1]](#references). Not in the paper table; the data are not redistributed.
 
 ```bash
+# 1. Download the data and build datasets/scrna_{covid,icb}.h5
 pip install -e ".[scrna]"
-python -m icmil.prepare_scrna                 # or: --raw-dir DIR with covid.h5ad / icb.h5ad already downloaded
-```
+python -m icmil.prepare_scrna
 
-This
-
-1. downloads `covid.h5ad` and `icb.h5ad`, the preprocessed files shared by the authors
-   (Google Drive folder linked from https://github.com/minhchaudo/hier-mil), to `datasets/raw/`
-   and checks their sha256;
-2. keeps per cell the features the authors use: 512-d scGPT embeddings (COVID) or 824
-   log-normalised genes (ICB);
-3. samples a fixed number of cells per patient, 1000 (COVID) or 242 (ICB), with replacement only
-   for patients with fewer cells;
-4. freezes the paper's folds: patients in file order, `StratifiedKFold(10, shuffle=True,
-   random_state=r)` for repetitions `r = 0..9`;
-5. writes `datasets/scrna_covid.h5` and `datasets/scrna_icb.h5` (`bags`, `labels`, `folds`).
-
-PCA to 25 or 50 features is fitted per fold on the training cells at evaluation time.
-
-#### Evaluation
-
-Each task has 100 splits (10 repetitions × 10 folds); the reported AUC is computed per repetition
-on its pooled test predictions, as in the paper.
-
-```bash
+# 2. Evaluate (PCA 50 needs the 50-feature checkpoints)
 python -m icmil.reproduce --tasks scrna_covid_pca25,scrna_icb_pca25
 python -m icmil.reproduce --tasks scrna_covid_pca50,scrna_icb_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm
 ```
 
-The supervised baselines are slow on 100 splits; pick a few with `--baselines`.
+Evaluation follows the paper: 10 × stratified 10-fold CV over patients, one AUC per repetition on
+the pooled test predictions. Unlike the paper, the table's ± is the SEM, not the SD.
 
 ## Licence
 
 MIT, see `LICENSE` and `THIRD_PARTY.md`.
+
+## References
+
+[1] C. Do, H. Lähdesmäki. *Incorporating hierarchical information into multiple instance learning
+for patient phenotype prediction with single-cell RNA-sequencing data.* Bioinformatics 41
+(Suppl. 1), 2025. https://doi.org/10.1093/bioinformatics/btaf241 — data and code:
+https://github.com/minhchaudo/hier-mil
