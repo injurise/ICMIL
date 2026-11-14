@@ -11,6 +11,7 @@ token is read out of the final latent stack and decoded to class logits.
 from __future__ import annotations
 
 import math
+import warnings
 
 import torch
 from torch import nn
@@ -95,6 +96,7 @@ class ICMIL(nn.Module):
         num_final_col_row_layers: int = 0,
         gradient_checkpointing: bool = False,
         bag_chunk_size: int = 32,
+        final_norm: bool = True,
     ) -> None:
         super().__init__()
         self.in_features = in_features
@@ -127,16 +129,22 @@ class ICMIL(nn.Module):
             ]
         )
         # Applied to the bag label token before decoding (present in trained checkpoints).
-        self.final_norm = LowerPrecisionLayerNorm(embedding_size)
+        # The 50-feature models (``icmil.artifacts.SEEDS_50F``) were trained without it.
+        self.final_norm = LowerPrecisionLayerNorm(embedding_size) if final_norm else nn.Identity()
 
     def forward(self, X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor) -> torch.Tensor:
         eval_bag_position = X_train.shape[1]
         X = torch.cat([X_train, X_test], dim=1)  # (B, NB, N, F)
 
-        # Enforce the trained feature-count contract (in_features). Benchmark tasks
-        # may pass wider raw features; truncate or right-pad so F == in_features.
+        # Enforce the trained feature-count contract (in_features): right-pad narrower
+        # inputs; truncate wider ones, which drops features, so warn about it.
         F = X.shape[-1]
         if self.in_features < F:
+            warnings.warn(
+                f"Input has {F} features but this model takes {self.in_features}; "
+                f"only the first {self.in_features} are used.",
+                stacklevel=2,
+            )
             X = X[..., : self.in_features]
         elif self.in_features > F:
             X = torch.nn.functional.pad(X, (0, self.in_features - F))

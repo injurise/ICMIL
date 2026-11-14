@@ -55,7 +55,16 @@ The default run also evaluates pooled-bag TabPFN baselines (`mean_tabpfn*`, `sum
 
 To also train ABMIL and ACMIL on the validation bags after model selection (refit), run `python -m icmil.reproduce --baselines abmil_refit,acmil_refit`.
 
-The default run also evaluates `icmil_ensemble`, which is not part of the paper table: each trained ICMIL seed averaged over 16 random views of a dataset (a stratified ~90 % of the context bags, with a power transform or a random rotation of the features). It needs no training; see `icmil/baselines/icmil_ensemble.py`.
+Each set of ICMIL seeds also gives an `ICMIL ensemble` row, which is not part of the paper table: each seed averaged over 16 random views of a dataset (a stratified ~90 % of the context bags, with a power transform or a random rotation of the features). It needs no training; see `icmil/baselines/icmil_ensemble.py`. Use `--icmil-rows plain` or `--icmil-rows ensemble` to keep only one of the two ICMIL rows.
+
+TAD is not in the paper table and not part of the default run:
+
+```bash
+python -m icmil.reproduce --tasks tad_pca25
+python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm  # 50-feature checkpoints
+```
+
+`tad_pca50` needs the 50-feature checkpoints; the run stops with an error if the selected seeds take fewer features than a task has. They also work on narrower tasks, which are zero-padded. Both the `ICMIL` and the `ICMIL ensemble` rows use the selected seeds.
 
 ## Licence
 

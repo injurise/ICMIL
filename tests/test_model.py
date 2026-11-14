@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from icmil.artifacts import SEEDS
+from icmil.artifacts import SEEDS, SEEDS_50F
 from icmil.model import ICMIL_ARCH, ICMILInference, build_icmil, load_icmil
 from tests.conftest import CHECKPOINTS, requires_artifacts
 
@@ -74,6 +74,18 @@ def test_feature_width_is_coerced_to_the_trained_width(n_features: int) -> None:
     assert out.shape == (1, 2, 2)
 
 
+@pytest.mark.parametrize(("n_features", "warns"), [(10, False), (25, False), (50, True)])
+def test_truncating_wider_inputs_warns(n_features: int, warns: bool) -> None:
+    """Dropping features is reported; zero-padding narrower inputs is not."""
+    import warnings
+
+    model = build_icmil(_tiny()).eval()
+    with warnings.catch_warnings(record=True) as caught, torch.no_grad():
+        warnings.simplefilter("always")
+        model(torch.randn(1, 4, 3, n_features), torch.randint(0, 2, (1, 4)), torch.randn(1, 2, 3, n_features))
+    assert any("only the first 25 are used" in str(w.message) for w in caught) == warns
+
+
 def test_query_bags_cannot_see_each_other() -> None:
     """In-context inference must treat query bags independently.
 
@@ -103,6 +115,15 @@ def test_released_checkpoints_load_strictly(seed: str) -> None:
     assert isinstance(model, ICMILInference)
     assert not model.model.training, "the loader must return a model in eval mode"
     assert model.model.in_features == 25
+
+
+@requires_artifacts
+@pytest.mark.parametrize("seed", SEEDS_50F)
+def test_50_feature_checkpoints_load_strictly(seed: str) -> None:
+    """The ``tad_pca50`` models: 50 input features, trained without ``final_norm``."""
+    model = load_icmil(seed=seed, device="cpu")
+    assert model.model.in_features == 50
+    assert isinstance(model.model.final_norm, torch.nn.Identity)
 
 
 @requires_artifacts

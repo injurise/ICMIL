@@ -24,6 +24,8 @@ DATASET_FILES: dict[str, str] = {
     "andrews": "andrews_mil_benchmark.h5",
     "tcga": "tcga_uni2_luad_vs_lusc.h5",
     "rsna": "rsna_ich_resnet50_draws_100bags.h5",
+    "tad_pca25": "tad_mil_resnet50.h5",
+    "tad_pca50": "tad_mil_resnet50_pca50.h5",
 }
 
 # The three trained model seeds. The names are opaque run labels.
@@ -33,6 +35,15 @@ CHECKPOINT_FILES: dict[str, str] = {
     "k337zhz1": "icmil-k337zhz1.pt",
 }
 SEEDS: tuple[str, ...] = tuple(CHECKPOINT_FILES)
+
+# Models trained on 50 input features, for ``tad_pca50``: the three seeds above take
+# at most 25 features.
+CHECKPOINT_FILES_50F: dict[str, str] = {
+    "zeqy97nm": "icmil-zeqy97nm.pt",
+    "awaqfzxd": "icmil-awaqfzxd.pt",
+    "ldsebntm": "icmil-ldsebntm.pt",
+}
+SEEDS_50F: tuple[str, ...] = tuple(CHECKPOINT_FILES_50F)
 
 
 def _resolve_dir(source: str | Path | None, env_var: str, default: Path) -> Path:
@@ -76,11 +87,12 @@ def resolve_checkpoint(seed: str, source: str | Path | None = None) -> Path:
     """Return the local path to a trained ICMIL checkpoint.
 
     Args:
-        seed: One of :data:`SEEDS`.
+        seed: One of :data:`SEEDS` or :data:`SEEDS_50F`.
         source: Directory holding the ``.pt`` files. Defaults to ``ICMIL_CKPT_DIR``
             or the in-repo ``checkpoints/``.
     """
-    if seed not in CHECKPOINT_FILES:
-        raise KeyError(f"Unknown seed {seed!r}; expected one of {sorted(CHECKPOINT_FILES)}")
+    files = CHECKPOINT_FILES | CHECKPOINT_FILES_50F
+    if seed not in files:
+        raise KeyError(f"Unknown seed {seed!r}; expected one of {sorted(files)}")
     directory = _resolve_dir(source, "ICMIL_CKPT_DIR", DEFAULT_CKPT_DIR)
-    return _fetch(directory, CHECKPOINT_FILES[seed], "Checkpoint", "ICMIL_CKPT_DIR")
+    return _fetch(directory, files[seed], "Checkpoint", "ICMIL_CKPT_DIR")

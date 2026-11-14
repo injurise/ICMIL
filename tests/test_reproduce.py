@@ -10,7 +10,15 @@ import torch
 
 from icmil.benchmarks import create_benchmark_tasks
 from icmil.benchmarks.registry import TASK_NAMES
-from icmil.reproduce import BASELINE_SPECS, TASKS, _parse_selection, _write_table, evaluate
+from icmil.reproduce import (
+    BASELINE_SPECS,
+    TAD_TASKS,
+    TASKS,
+    _check_icmil_widths,
+    _parse_selection,
+    _write_table,
+    evaluate,
+)
 
 # --------------------------------------------------------------------------- tasks
 
@@ -39,6 +47,34 @@ def test_mnist_task_names_carry_their_bag_count(synthetic_dataset_kwargs: dict) 
     """
     (task,) = create_benchmark_tasks(["mnist_xai_smil"], **synthetic_dataset_kwargs)
     assert task.name == "mnist_xai_smil_100bags"
+
+
+def test_tad_tasks_are_opt_in(synthetic_dataset_kwargs: dict) -> None:
+    """TAD is registered and selectable, but is not one of the paper's twelve tasks."""
+    assert set(TAD_TASKS) <= set(TASK_NAMES)
+    assert not set(TAD_TASKS) & set(TASKS)
+    tasks = create_benchmark_tasks(TAD_TASKS, **synthetic_dataset_kwargs)
+    assert [(task.name, task.n_features, task.n_splits) for task in tasks] == [
+        ("tad_pca25", 25, 1),
+        ("tad_pca50", 50, 1),
+    ]
+    assert _parse_selection("tad_pca50", TASKS, "task", extra=tuple(TAD_TASKS)) == ["tad_pca50"]
+    assert _parse_selection("all", TASKS, "task", extra=tuple(TAD_TASKS)) == TASKS
+
+
+def test_icmil_seeds_narrower_than_a_task_are_rejected(synthetic_dataset_kwargs: dict) -> None:
+    """A 25-feature seed on ``tad_pca50`` would silently drop half the features."""
+    from types import SimpleNamespace
+
+    def run(width: int) -> SimpleNamespace:
+        return SimpleNamespace(model=SimpleNamespace(in_features=width))
+
+    tasks = create_benchmark_tasks(TAD_TASKS, **synthetic_dataset_kwargs)
+    with pytest.raises(ValueError, match="more features than the ICMIL seeds"):
+        _check_icmil_widths({"a": run(25)}, tasks)
+    with pytest.raises(ValueError, match="different feature counts"):
+        _check_icmil_widths({"a": run(25), "b": run(50)}, tasks)
+    _check_icmil_widths({"a": run(50), "b": run(50)}, tasks)  # narrower tasks are padded, not rejected
 
 
 def test_unknown_task_is_rejected_rather_than_skipped(synthetic_dataset_kwargs: dict) -> None:
