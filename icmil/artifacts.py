@@ -26,6 +26,9 @@ DATASET_FILES: dict[str, str] = {
     "rsna": "rsna_ich_resnet50_draws_100bags.h5",
     "tad_pca25": "tad_mil_resnet50.h5",
     "tad_pca50": "tad_mil_resnet50_pca50.h5",
+    # Built locally by ``python -m icmil.prepare_scrna``.
+    "scrna_covid": "scrna_covid.h5",
+    "scrna_icb": "scrna_icb.h5",
 }
 
 # The three trained model seeds. The names are opaque run labels.

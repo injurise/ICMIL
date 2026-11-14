@@ -28,6 +28,7 @@ datagen = ["tabicl==0.1.*", "scipy>=1.11"]
 icmil-reproduce = "icmil.reproduce:main"
 icmil-train = "icmil.train:main"
 icmil-datagen = "icmil.datagen.generate:main"
+icmil-prepare-scrna = "icmil.prepare_scrna:main"
 
 [dependency-groups]
 dev = ["pytest>=8.3.5", "ruff==0.16.*"]

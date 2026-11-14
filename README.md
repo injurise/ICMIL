@@ -66,6 +66,31 @@ python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldse
 
 `tad_pca50` needs the 50-feature checkpoints; the run stops with an error if the selected seeds take fewer features than a task has. They also work on narrower tasks, which are zero-padded. Both the `ICMIL` and the `ICMIL ensemble` rows use the selected seeds.
 
+### Single-cell benchmarks
+
+COVID and ICB patient classification from scRNA-seq, using the preprocessed data of Do &
+Lähdesmäki (2025) [[1]](#references). Not in the paper table; the data are not redistributed.
+
+```bash
+# 1. Download covid.h5ad and icb.h5ad from the Google Drive folder linked in
+#    https://github.com/minhchaudo/hier-mil into datasets/raw/, then build datasets/scrna_{covid,icb}.h5
+python -m icmil.prepare_scrna
+
+# 2. Evaluate (PCA 50 needs the 50-feature checkpoints)
+python -m icmil.reproduce --tasks scrna_covid_pca25,scrna_icb_pca25
+python -m icmil.reproduce --tasks scrna_covid_pca50,scrna_icb_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm
+```
+
+Evaluation follows the paper: 10 × stratified 10-fold CV over patients, one AUC per repetition on
+the pooled test predictions. Unlike the paper, the table's ± is the SEM, not the SD.
+
 ## Licence
 
 MIT, see `LICENSE` and `THIRD_PARTY.md`.
+
+## References
+
+[1] C. Do, H. Lähdesmäki. *Incorporating hierarchical information into multiple instance learning
+for patient phenotype prediction with single-cell RNA-sequencing data.* Bioinformatics 41
+(Suppl. 1), 2025. https://doi.org/10.1093/bioinformatics/btaf241 — data and code:
+https://github.com/minhchaudo/hier-mil

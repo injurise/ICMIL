@@ -60,6 +60,9 @@ TASKS: list[str] = [
 # run with ``--tasks``. ``tad_pca50`` needs ``--icmil-seeds`` from ``SEEDS_50F``.
 TAD_TASKS: list[str] = ["tad_pca25", "tad_pca50"]
 
+# Single-cell patient classification (not in the paper table); ``_pca50`` needs ``SEEDS_50F``.
+SCRNA_TASKS: list[str] = ["scrna_covid_pca25", "scrna_covid_pca50", "scrna_icb_pca25", "scrna_icb_pca50"]
+
 # Baseline hyper-parameters as reported. ``seed`` is set per run (0..n_seeds-1).
 BASELINE_SPECS: dict[str, dict] = {
     "mean_logreg": dict(max_classes=4),
@@ -166,6 +169,8 @@ _DATASET_FOR_PREFIX: list[tuple[str, str, str]] = [
     ("mnist_xai_", "mnist_xai", "mnist_xai_h5_path"),
     ("tad_pca25", "tad_pca25", "tad_pca25_h5_path"),
     ("tad_pca50", "tad_pca50", "tad_pca50_h5_path"),
+    ("scrna_covid_", "scrna_covid", "scrna_covid_h5_path"),
+    ("scrna_icb_", "scrna_icb", "scrna_icb_h5_path"),
 ]
 
 
@@ -465,7 +470,7 @@ def main() -> None:
         model_source=args.models,
         baselines=baselines,
         icmil_seeds=_parse_selection(args.icmil_seeds, list(SEEDS), "seed", extra=SEEDS_50F),
-        tasks=_parse_selection(args.tasks, TASKS, "task", extra=tuple(TAD_TASKS)),
+        tasks=_parse_selection(args.tasks, TASKS, "task", extra=(*TAD_TASKS, *SCRNA_TASKS)),
         n_seeds=args.n_seeds,
         device=args.device,
         output_dir=Path(args.output),

@@ -75,5 +75,20 @@ public datasets. Original sources and terms:
 | `rsna_ich_resnet50_draws_100bags.h5` | RSNA Intracranial Haemorrhage CT, ResNet-50 slice features (via the `torchmil` dataset release) |
 | `tad_mil_resnet50.h5`, `tad_mil_resnet50_pca50.h5` | Traffic Anomaly Detection video dataset, ResNet-50 frame features reduced by PCA to 25 and 50 dimensions (via the `torchmil` dataset release) |
 
+The single-cell benchmarks are not shipped. `python -m icmil.prepare_scrna` downloads the
+preprocessed files shared by the authors of
+
+> C. Do, H. Lähdesmäki. *Incorporating hierarchical information into multiple instance
+> learning for patient phenotype prediction with single-cell RNA-sequencing data.*
+> Bioinformatics 41 (Suppl. 1), 2025. https://doi.org/10.1093/bioinformatics/btaf241 —
+> code and data links: https://github.com/minhchaudo/hier-mil
+
+and builds `datasets/scrna_covid.h5` and `datasets/scrna_icb.h5` locally. Their sources:
+
+| File | Source |
+|---|---|
+| `scrna_covid.h5` | Nasopharyngeal swabs, C. G. K. Ziegler et al., *Cell* 2021 (Broad Single Cell Portal SCP1289); scGPT cell embeddings computed by Do & Lähdesmäki |
+| `scrna_icb.h5` | M. Gondal, M. Cieslik, A. Chinnaiyan, integrated ICB scRNA-seq datasets, https://doi.org/10.5281/zenodo.10407126 (CC BY 4.0), from the studies of Bassez et al. 2021, Pozniak et al. 2024 and Alvarez-Breckenridge et al. 2022 |
+
 Each retains the licence and usage terms of its source dataset. TCGA, RSNA and TAD are
 distributed here only as extracted feature vectors, not as images.
