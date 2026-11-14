@@ -55,6 +55,8 @@ The default run also evaluates pooled-bag TabPFN baselines (`mean_tabpfn*`, `sum
 
 To also train ABMIL and ACMIL on the validation bags after model selection (refit), run `python -m icmil.reproduce --baselines abmil_refit,acmil_refit`.
 
+The default run also evaluates `icmil_ensemble`, which is not part of the paper table: each trained ICMIL seed averaged over 16 random views of a dataset (a stratified ~90 % of the context bags, with a power transform or a random rotation of the features). It needs no training; see `icmil/baselines/icmil_ensemble.py`.
+
 ## Licence
 
 MIT, see `LICENSE` and `THIRD_PARTY.md`.

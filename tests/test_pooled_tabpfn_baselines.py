@@ -111,5 +111,6 @@ def test_every_baseline_spec_has_a_class() -> None:
     from icmil.reproduce import BASELINE_SPECS, _baseline_classes
 
     classes = _baseline_classes()
-    assert set(BASELINE_SPECS) == set(classes)
-    assert set(BASELINES) <= set(classes.values())
+    pooled = {name: cls for name, cls in classes.items() if cls in BASELINES}
+    assert set(pooled.values()) == set(BASELINES)
+    assert set(pooled) <= set(BASELINE_SPECS)

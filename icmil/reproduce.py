@@ -6,6 +6,7 @@ Usage:
     python -m icmil.reproduce --baselines mean_logreg,abmil
     python -m icmil.reproduce --baselines summ_tabpfn35 --icmil-seeds none
     python -m icmil.reproduce --baselines none --icmil-seeds c5trd795
+    python -m icmil.reproduce --baselines icmil_ensemble --icmil-seeds none
 
 Rows are models, columns are tasks, cells are AUROC as ``mean ± SEM``. Each row
 aggregates several independent runs and the ± is the spread **across** them: for
@@ -135,6 +136,13 @@ BASELINE_SPECS: dict[str, dict] = {
     "summ_tabpfn3": dict(max_classes=4),
     "mean_tabpfn35": dict(max_classes=4),
     "summ_tabpfn35": dict(max_classes=4),
+    # The trained ICMIL seeds, each averaged over random views of a dataset. Not part of the paper table.
+    "icmil_ensemble": dict(
+        n_members=16,
+        transforms=("power", "rotation"),
+        bag_fraction_mean=0.9,
+        bag_fraction_std=0.01,
+    ),
 }
 # Refit variants (not in the paper table): same selection, then retrain on train + validation bags.
 BASELINE_SPECS["abmil_refit"] = dict(BASELINE_SPECS["abmil"], refit=True)
@@ -227,6 +235,17 @@ def evaluate(
     models: dict[str, tuple[list, int | None]] = {}
     classes = _baseline_classes() if baselines else {}
     for name in baselines:
+        if name == "icmil_ensemble":
+            # Not fitted per split: run ``s`` wraps trained seed ``s`` (cycling through the three).
+            from icmil.baselines.icmil_ensemble import ICMILEnsemble
+
+            seeds = [SEEDS[s % len(SEEDS)] for s in range(n_seeds)]
+            runs = [
+                ICMILEnsemble(load_icmil(model_source, seed, dev).model, seed=s, **BASELINE_SPECS[name])
+                for s, seed in enumerate(seeds)
+            ]
+            models[name] = (runs, None)
+            continue
         cls = classes[name]
         # Baselines accept any feature width, so they see the raw features:
         # harness-side zero padding would distort their summary statistics.
