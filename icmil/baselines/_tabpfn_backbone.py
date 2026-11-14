@@ -1,7 +1,7 @@
 """Frozen TabPFN v2 backbone used by the TabPFN-based MIL baselines."""
 
 import torch
-from tabpfn.model.loading import load_model_criterion_config
+from tabpfn.model_loading import load_model_criterion_config
 from torch import nn
 
 
@@ -21,14 +21,14 @@ class FrozenTabPFNBackbone(nn.Module):
         super().__init__()
         self.max_classes = max_classes
 
-        model, _criterion, _config = load_model_criterion_config(
+        models, _criterion, _configs, _inference_config = load_model_criterion_config(
             model_path=model_path,
             check_bar_distribution_criterion=False,
-            cache_trainset_representation=False,
-            which="classifier",
+            estimator_type="classifier",
             version="v2",
-            download=True,
+            download_if_not_exists=True,
         )
+        model = models[0]
         model.features_per_group = features_per_group
 
         for param in model.parameters():
