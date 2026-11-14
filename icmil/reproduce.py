@@ -102,6 +102,20 @@ BASELINE_SPECS: dict[str, dict] = {
         batch_size=None,
         val_fraction=0.1,
     ),
+    "mambamil": dict(
+        max_classes=2,
+        embed_dim=512,
+        attn_dim=128,
+        n_layers=2,
+        rate=5,
+        dropout=0.0,
+        lr_grid=(0.01, 0.005, 0.001, 0.0005, 0.0001),
+        wd_grid=(0.0, 0.0001, 0.0005),
+        epochs=200,
+        patience=20,
+        batch_size=None,
+        val_fraction=0.1,
+    ),
     "tabpfn_concat": dict(max_classes=4, max_tabpfn_features=500, features_per_group=2),
     "tabpfn_subsample": dict(
         max_classes=4,
@@ -122,6 +136,10 @@ BASELINE_SPECS: dict[str, dict] = {
     "mean_tabpfn35": dict(max_classes=4),
     "summ_tabpfn35": dict(max_classes=4),
 }
+# Refit variants (not in the paper table): same selection, then retrain on train + validation bags.
+BASELINE_SPECS["abmil_refit"] = dict(BASELINE_SPECS["abmil"], refit=True)
+BASELINE_SPECS["acmil_refit"] = dict(BASELINE_SPECS["acmil"], refit=True)
+REFIT_BASELINES = ("abmil_refit", "acmil_refit")  # opt-in by name, excluded from ``--baselines all``
 
 # Which .h5 each task family needs, as the keyword `create_benchmark_tasks` expects.
 _DATASET_FOR_PREFIX: list[tuple[str, str, str]] = [
@@ -138,6 +156,7 @@ def _baseline_classes() -> dict[str, type]:
     from icmil.baselines.abmil_baseline import ABMILBaseline
     from icmil.baselines.acmil_baseline import ACMILBaseline
     from icmil.baselines.dsmil_baseline import DSMILBaseline
+    from icmil.baselines.mambamil_baseline import MambaMILBaseline
     from icmil.baselines.pooled_tabpfn_baselines import (
         MeanTabPFN3Baseline,
         MeanTabPFN25Baseline,
@@ -162,6 +181,7 @@ def _baseline_classes() -> dict[str, type]:
         "abmil": ABMILBaseline,
         "acmil": ACMILBaseline,
         "dsmil": DSMILBaseline,
+        "mambamil": MambaMILBaseline,
         "tabpfn_concat": TabPFNConcatBaseline,
         "tabpfn_subsample": TabPFNSubsampleBaseline,
         "cluster_tabpfn": ClusterTabPFNBaseline,
@@ -173,6 +193,8 @@ def _baseline_classes() -> dict[str, type]:
         "summ_tabpfn3": SummTabPFN3Baseline,
         "mean_tabpfn35": MeanTabPFN35Baseline,
         "summ_tabpfn35": SummTabPFN35Baseline,
+        "abmil_refit": ABMILBaseline,
+        "acmil_refit": ACMILBaseline,
     }
 
 
@@ -369,10 +391,14 @@ def main() -> None:
     p.add_argument("--output", default="results", help="Output directory")
     args = p.parse_args()
 
+    baselines = _parse_selection(args.baselines, list(BASELINE_SPECS), "baseline")
+    if args.baselines == "all":
+        baselines = [b for b in baselines if b not in REFIT_BASELINES]
+
     evaluate(
         data_source=args.data,
         model_source=args.models,
-        baselines=_parse_selection(args.baselines, list(BASELINE_SPECS), "baseline"),
+        baselines=baselines,
         icmil_seeds=_parse_selection(args.icmil_seeds, list(SEEDS), "seed"),
         tasks=_parse_selection(args.tasks, TASKS, "task"),
         n_seeds=args.n_seeds,

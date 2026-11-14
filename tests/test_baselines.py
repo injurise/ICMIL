@@ -1,6 +1,6 @@
-"""Tests for the MIL baselines: ABMIL, ACMIL-GA and DSMIL.
+"""Tests for the MIL baselines: ABMIL, ACMIL-GA, DSMIL and MambaMIL.
 
-All three fit the same way, so they share the contract asserted here:
+All four fit the same way, so they share the contract asserted here:
 ``(X_train, y_train, X_test) -> (B, n_test, max_classes)`` log-probabilities,
 always-eval mode, and seed determinism.
 """
@@ -17,6 +17,7 @@ from icmil.baselines.acmil_baseline import (
     acmil_composite_loss,
 )
 from icmil.baselines.dsmil_baseline import DSMIL, DSMILBaseline
+from icmil.baselines.mambamil_baseline import MambaMIL, MambaMILBaseline, SRMamba, _SelectiveScan
 
 
 @pytest.fixture
@@ -347,3 +348,106 @@ class TestDSMILBaseline:
         out = model(X_train, y_train, X_test)
         assert out.shape == (1, 2, 3)
         assert (out <= 0).all()
+
+
+# ---------------------------------------------------------------------------
+# Refit on train + validation bags
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(("make", "method"), [(_tiny_abmil, "_train_model"), (_tiny_acmil, "_train_once")])
+@pytest.mark.parametrize("refit", [False, True])
+def test_refit_retrains_on_all_context_bags(train_test_tensors, make, method, refit) -> None:
+    """``refit=True`` adds one fit on all context bags for the selected candidate's best epoch."""
+    X_train, y_train, X_test = train_test_tensors
+    model = make(refit=refit, lr_grid=(1e-2, 1e-3))
+    fits: list[tuple[int, int | None, int]] = []  # (n_train_bags, max_epochs, best_epoch)
+    inner = getattr(model, method)
+
+    def recording(X, *args, **kwargs):
+        out = inner(X, *args, **kwargs)
+        fits.append((X.shape[0], kwargs.get("max_epochs"), out[-1]))
+        return out
+
+    setattr(model, method, recording)
+    out = model(X_train, y_train, X_test)
+
+    assert torch.allclose(out.exp().sum(dim=-1), torch.ones(1, 2), atol=1e-5)
+    n_train, n_search = y_train.shape[1], 2
+    # One early-stopped fit per grid combo on the 75% split, no epoch override.
+    assert [(n, e) for n, e, _ in fits[:n_search]] == [(9, None)] * n_search
+    if not refit:
+        assert len(fits) == n_search
+        return
+    (n_bags, refit_epochs, _) = fits[n_search]
+    assert len(fits) == n_search + 1
+    assert n_bags == n_train
+    assert refit_epochs in {best for _, _, best in fits[:n_search]}
+
+
+# ---------------------------------------------------------------------------
+# MambaMIL module
+# ---------------------------------------------------------------------------
+
+
+class TestMambaMILModule:
+    @pytest.mark.parametrize("bag_size", [1, 5, 7])  # shorter than, equal to and not a multiple of `rate`
+    def test_output_shape(self, bag_size: int) -> None:
+        model = MambaMIL(in_dim=8, embed_dim=16, attn_dim=8, rate=5, num_classes=3)
+        assert model(torch.randn(4, bag_size, 8)).shape == (4, 3)
+
+    def test_scan_is_causal(self) -> None:
+        # Changing a later instance must not change the output at earlier ones.
+        torch.manual_seed(0)
+        scan = _SelectiveScan(d_inner=8, d_state=4, d_conv=4, dt_rank=2)
+        xz = torch.randn(2, 6, 16)
+        changed = xz.clone()
+        changed[:, 4:] += 1.0
+        assert torch.allclose(scan(xz)[:, :4], scan(changed)[:, :4], atol=1e-6)
+
+    def test_reordered_scan_sees_strided_order(self) -> None:
+        # With rate=2 the reordered scan reads instances 0, 2, 4, 1, 3, 5, so
+        # instance 1 is influenced by instance 4 there, but not in a plain scan.
+        torch.manual_seed(0)
+        mixer = SRMamba(d_model=8)
+        h = torch.randn(1, 6, 8)
+        changed = h.clone()
+        changed[:, 4] += 1.0
+        assert not torch.allclose(mixer(h, rate=2)[:, 1], mixer(changed, rate=2)[:, 1], atol=1e-6)
+        assert torch.allclose(mixer(h, rate=6)[:, 1], mixer(changed, rate=6)[:, 1], atol=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# MambaMILBaseline
+# ---------------------------------------------------------------------------
+
+
+def _tiny_mambamil(max_classes: int = 3, **overrides) -> MambaMILBaseline:
+    """Fast MambaMIL baseline fixture: 1 (lr, wd) combo, 3 epochs, tiny widths."""
+    kwargs: dict = {
+        "max_classes": max_classes,
+        "embed_dim": 16,
+        "attn_dim": 8,
+        "rate": 2,
+        "lr_grid": (1e-3,),
+        "wd_grid": (0.0,),
+        "epochs": 3,
+        "patience": 2,
+        "val_fraction": 0.25,
+    }
+    kwargs.update(overrides)
+    return MambaMILBaseline(**kwargs)
+
+
+class TestMambaMILBaseline:
+    def test_output_is_log_probabilities(self, train_test_tensors) -> None:
+        X_train, y_train, X_test = train_test_tensors
+        out = _tiny_mambamil()(X_train, y_train, X_test)
+        assert out.shape == (1, 2, 3)
+        assert torch.allclose(out.logsumexp(dim=-1), torch.zeros_like(out[..., 0]), atol=1e-5)
+
+    def test_same_seed_reproducible(self, train_test_tensors) -> None:
+        X_train, y_train, X_test = train_test_tensors
+        out_a = _tiny_mambamil(seed=3)(X_train, y_train, X_test)
+        out_b = _tiny_mambamil(seed=3)(X_train, y_train, X_test)
+        assert torch.allclose(out_a, out_b)

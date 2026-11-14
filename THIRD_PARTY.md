@@ -32,6 +32,14 @@ pretraining is not part of this baseline.
 > 2021. https://arxiv.org/abs/2011.08939 —
 > reference implementation: https://github.com/binli123/dsmil-wsi
 
+**MambaMIL** — `icmil/baselines/mambamil_baseline.py` reimplements MambaMIL (residual
+Sequence Reordering Mamba blocks followed by attention pooling) and exposes the same
+`forward(X_train, y_train, X_test)` interface as the other baselines.
+
+> S. Yang, Y. Wang, H. Chen. *MambaMIL: Enhancing Long Sequence Modeling with Sequence
+> Reordering in Computational Pathology.* MICCAI 2024. https://arxiv.org/abs/2403.06800 —
+> reference implementation: https://github.com/isyangshu/MambaMIL
+
 ## Packages
 
 **TabPFN** — the `tabpfn_concat`, `tabpfn_subsample` and `cluster_tabpfn` baselines run
