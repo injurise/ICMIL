@@ -62,7 +62,6 @@ def test_tad_tasks_are_opt_in(synthetic_dataset_kwargs: dict) -> None:
     assert _parse_selection("all", TASKS, "task", extra=tuple(TAD_TASKS)) == TASKS
 
 
-
 def test_icmil_seeds_narrower_than_a_task_are_rejected(synthetic_dataset_kwargs: dict) -> None:
     """A 25-feature seed on ``tad_pca50`` would silently drop half the features."""
     from types import SimpleNamespace
@@ -76,6 +75,7 @@ def test_icmil_seeds_narrower_than_a_task_are_rejected(synthetic_dataset_kwargs:
     with pytest.raises(ValueError, match="different feature counts"):
         _check_icmil_widths({"a": run(25), "b": run(50)}, tasks)
     _check_icmil_widths({"a": run(50), "b": run(50)}, tasks)  # narrower tasks are padded, not rejected
+
 
 def test_unknown_task_is_rejected_rather_than_skipped(synthetic_dataset_kwargs: dict) -> None:
     """A typo used to drop a column silently; now it fails loudly."""

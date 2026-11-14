@@ -74,7 +74,6 @@ def test_feature_width_is_coerced_to_the_trained_width(n_features: int) -> None:
     assert out.shape == (1, 2, 2)
 
 
-
 @pytest.mark.parametrize(("n_features", "warns"), [(10, False), (25, False), (50, True)])
 def test_truncating_wider_inputs_warns(n_features: int, warns: bool) -> None:
     """Dropping features is reported; zero-padding narrower inputs is not."""
@@ -85,6 +84,7 @@ def test_truncating_wider_inputs_warns(n_features: int, warns: bool) -> None:
         warnings.simplefilter("always")
         model(torch.randn(1, 4, 3, n_features), torch.randint(0, 2, (1, 4)), torch.randn(1, 2, 3, n_features))
     assert any("only the first 25 are used" in str(w.message) for w in caught) == warns
+
 
 def test_query_bags_cannot_see_each_other() -> None:
     """In-context inference must treat query bags independently.
