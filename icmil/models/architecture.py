@@ -11,6 +11,7 @@ token is read out of the final latent stack and decoded to class logits.
 from __future__ import annotations
 
 import math
+import warnings
 
 import torch
 from torch import nn
@@ -135,10 +136,15 @@ class ICMIL(nn.Module):
         eval_bag_position = X_train.shape[1]
         X = torch.cat([X_train, X_test], dim=1)  # (B, NB, N, F)
 
-        # Enforce the trained feature-count contract (in_features). Benchmark tasks
-        # may pass wider raw features; truncate or right-pad so F == in_features.
+        # Enforce the trained feature-count contract (in_features): right-pad narrower
+        # inputs; truncate wider ones, which drops features, so warn about it.
         F = X.shape[-1]
         if self.in_features < F:
+            warnings.warn(
+                f"Input has {F} features but this model takes {self.in_features}; "
+                f"only the first {self.in_features} are used.",
+                stacklevel=2,
+            )
             X = X[..., : self.in_features]
         elif self.in_features > F:
             X = torch.nn.functional.pad(X, (0, self.in_features - F))

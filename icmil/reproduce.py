@@ -211,6 +211,7 @@ def evaluate(
         models[name] = ([cls(seed=s, **BASELINE_SPECS[name]).to(dev) for s in range(n_seeds)], None)
     if icmil_seeds:
         runs = [load_icmil(source=model_source, seed=s, device=dev) for s in icmil_seeds]
+        _check_icmil_widths(dict(zip(icmil_seeds, runs)), benchmark_tasks)
         label = "ICMIL" if len(icmil_seeds) > 1 else f"ICMIL (seed {icmil_seeds[0]})"
         models[label] = (runs, runs[0].model.in_features)
 
@@ -243,6 +244,25 @@ def evaluate(
     _write_run_meta(output_dir, dev, models, tasks, n_seeds, timings, _dataset_kwargs(data_source, tasks))
     logger.info("Wrote %s", ", ".join(sorted(p.name for p in output_dir.glob("*"))))
     return all_results
+
+
+def _check_icmil_widths(runs: dict[str, torch.nn.Module], tasks: list) -> None:
+    """Fail before any compute if an ICMIL seed would silently drop task features.
+
+    The model truncates inputs wider than its ``in_features``, so a task wider than
+    the model would be scored on a subset of its features. Narrower tasks are fine:
+    they are zero-padded. Mixed widths are rejected because the table pools the seeds.
+    """
+    widths = {seed: run.model.in_features for seed, run in runs.items()}
+    if len(set(widths.values())) > 1:
+        raise ValueError(f"ICMIL seeds take different feature counts {widths}; run each width separately.")
+    width = next(iter(widths.values()))
+    too_wide = {t.name: t.n_features for t in tasks if t.n_features > width}
+    if too_wide:
+        raise ValueError(
+            f"Tasks {too_wide} have more features than the ICMIL seeds {sorted(widths)} take ({width}). "
+            f"Use seeds trained on enough features, e.g. --icmil-seeds {','.join(SEEDS_50F)}."
+        )
 
 
 def _write_table(all_results: dict, output_dir: Path, n_runs: dict[str, int]) -> None:

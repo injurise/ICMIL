@@ -10,7 +10,15 @@ import torch
 
 from icmil.benchmarks import create_benchmark_tasks
 from icmil.benchmarks.registry import TASK_NAMES
-from icmil.reproduce import BASELINE_SPECS, TAD_TASKS, TASKS, _parse_selection, _write_table, evaluate
+from icmil.reproduce import (
+    BASELINE_SPECS,
+    TAD_TASKS,
+    TASKS,
+    _check_icmil_widths,
+    _parse_selection,
+    _write_table,
+    evaluate,
+)
 
 # --------------------------------------------------------------------------- tasks
 
@@ -53,6 +61,21 @@ def test_tad_tasks_are_opt_in(synthetic_dataset_kwargs: dict) -> None:
     assert _parse_selection("tad_pca50", TASKS, "task", extra=tuple(TAD_TASKS)) == ["tad_pca50"]
     assert _parse_selection("all", TASKS, "task", extra=tuple(TAD_TASKS)) == TASKS
 
+
+
+def test_icmil_seeds_narrower_than_a_task_are_rejected(synthetic_dataset_kwargs: dict) -> None:
+    """A 25-feature seed on ``tad_pca50`` would silently drop half the features."""
+    from types import SimpleNamespace
+
+    def run(width: int) -> SimpleNamespace:
+        return SimpleNamespace(model=SimpleNamespace(in_features=width))
+
+    tasks = create_benchmark_tasks(TAD_TASKS, **synthetic_dataset_kwargs)
+    with pytest.raises(ValueError, match="more features than the ICMIL seeds"):
+        _check_icmil_widths({"a": run(25)}, tasks)
+    with pytest.raises(ValueError, match="different feature counts"):
+        _check_icmil_widths({"a": run(25), "b": run(50)}, tasks)
+    _check_icmil_widths({"a": run(50), "b": run(50)}, tasks)  # narrower tasks are padded, not rejected
 
 def test_unknown_task_is_rejected_rather_than_skipped(synthetic_dataset_kwargs: dict) -> None:
     """A typo used to drop a column silently; now it fails loudly."""
