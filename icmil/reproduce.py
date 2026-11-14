@@ -4,6 +4,7 @@ Usage:
     python -m icmil.reproduce                                   # full table
     python -m icmil.reproduce --tasks uci_musk1                 # one task
     python -m icmil.reproduce --baselines mean_logreg,abmil
+    python -m icmil.reproduce --baselines summ_tabpfn35 --icmil-seeds none
     python -m icmil.reproduce --baselines none --icmil-seeds c5trd795
 
 Rows are models, columns are tasks, cells are AUROC as ``mean ± SEM``. Each row
@@ -125,6 +126,15 @@ BASELINE_SPECS: dict[str, dict] = {
         aggregation="mean_logits",
     ),
     "cluster_tabpfn": dict(max_classes=4, n_clusters=5, n_pca_components=None, max_tabpfn_features=500),
+    # Pooled bags classified by TabPFN at its package defaults. Not part of the paper table.
+    "mean_tabpfn": dict(max_classes=4),
+    "summ_tabpfn": dict(max_classes=4),
+    "mean_tabpfn25": dict(max_classes=4),
+    "summ_tabpfn25": dict(max_classes=4),
+    "mean_tabpfn3": dict(max_classes=4),
+    "summ_tabpfn3": dict(max_classes=4),
+    "mean_tabpfn35": dict(max_classes=4),
+    "summ_tabpfn35": dict(max_classes=4),
 }
 # Refit variants (not in the paper table): same selection, then retrain on train + validation bags.
 BASELINE_SPECS["abmil_refit"] = dict(BASELINE_SPECS["abmil"], refit=True)
@@ -147,6 +157,16 @@ def _baseline_classes() -> dict[str, type]:
     from icmil.baselines.acmil_baseline import ACMILBaseline
     from icmil.baselines.dsmil_baseline import DSMILBaseline
     from icmil.baselines.mambamil_baseline import MambaMILBaseline
+    from icmil.baselines.pooled_tabpfn_baselines import (
+        MeanTabPFN3Baseline,
+        MeanTabPFN25Baseline,
+        MeanTabPFN35Baseline,
+        MeanTabPFNBaseline,
+        SummTabPFN3Baseline,
+        SummTabPFN25Baseline,
+        SummTabPFN35Baseline,
+        SummTabPFNBaseline,
+    )
     from icmil.baselines.tabpfn_baselines import (
         ClusterTabPFNBaseline,
         MeanLogRegBaseline,
@@ -165,6 +185,14 @@ def _baseline_classes() -> dict[str, type]:
         "tabpfn_concat": TabPFNConcatBaseline,
         "tabpfn_subsample": TabPFNSubsampleBaseline,
         "cluster_tabpfn": ClusterTabPFNBaseline,
+        "mean_tabpfn": MeanTabPFNBaseline,
+        "summ_tabpfn": SummTabPFNBaseline,
+        "mean_tabpfn25": MeanTabPFN25Baseline,
+        "summ_tabpfn25": SummTabPFN25Baseline,
+        "mean_tabpfn3": MeanTabPFN3Baseline,
+        "summ_tabpfn3": SummTabPFN3Baseline,
+        "mean_tabpfn35": MeanTabPFN35Baseline,
+        "summ_tabpfn35": SummTabPFN35Baseline,
         "abmil_refit": ABMILBaseline,
         "acmil_refit": ACMILBaseline,
     }
