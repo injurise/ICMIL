@@ -51,20 +51,21 @@ python -m icmil.reproduce
 python -m icmil.reproduce --tasks uci_musk1 --baselines mean_logreg
 ```
 
-The default run also evaluates pooled-bag TabPFN baselines (`mean_tabpfn*`, `summ_tabpfn*`), which are not part of the paper table. They need the TabPFN v2.5 and v3.5 weights, which are gated: accept the licenses of `Prior-Labs/tabpfn_2_5` and `Prior-Labs/tabpfn_3_5` on Hugging Face and log in before the first run.
+#### Additional baselines and benchmarks
 
-To also train ABMIL and ACMIL on the validation bags after model selection (refit), run `python -m icmil.reproduce --baselines abmil_refit,acmil_refit`.
+It is also possible to run baselines and benchmarks that are not part of the original paper:
 
-Each set of ICMIL seeds also gives an `ICMIL ensemble` row, which is not part of the paper table: each seed averaged over 16 random views of a dataset (a stratified ~90 % of the context bags, with a power transform or a random rotation of the features). It needs no training; see `icmil/baselines/icmil_ensemble.py`. Use `--icmil-rows plain` or `--icmil-rows ensemble` to keep only one of the two ICMIL rows.
-
-TAD is not in the paper table and not part of the default run:
+- **Pooled-bag TabPFN** (`mean_tabpfn*`, `summ_tabpfn*`) runs by default. The v2.5 and v3.5 weights are gated: accept the licenses of `Prior-Labs/tabpfn_2_5` and `Prior-Labs/tabpfn_3_5` on Hugging Face and log in before the first run.
+- **ICMIL ensemble** also runs by default: each seed averaged over 16 random views of the data, no training needed (see `icmil/baselines/icmil_ensemble.py`).
+- **ABMIL / ACMIL refit** on the validation bags after model selection.
+- **TAD**, where `tad_pca50` needs the 50-feature checkpoints.
 
 ```bash
+python -m icmil.reproduce --icmil-rows plain  # or ensemble: keep only one ICMIL row
+python -m icmil.reproduce --baselines abmil_refit,acmil_refit
 python -m icmil.reproduce --tasks tad_pca25
-python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm  # 50-feature checkpoints
+python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm
 ```
-
-`tad_pca50` needs the 50-feature checkpoints; the run stops with an error if the selected seeds take fewer features than a task has. They also work on narrower tasks, which are zero-padded. Both the `ICMIL` and the `ICMIL ensemble` rows use the selected seeds.
 
 ### Single-cell benchmarks
 
