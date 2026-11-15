@@ -69,8 +69,8 @@ python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldse
 
 ### Single-cell benchmarks
 
-COVID and ICB patient classification from scRNA-seq, using the preprocessed data of Do &
-Lähdesmäki (2025) [[1]](#references). Not in the paper table; the data are not redistributed.
+For the COVID and ICB patient classification benchmarks (scRNA-seq) we use the preprocessed data of
+Do & Lähdesmäki (2025) [[1]](#references), which is not redistributed here. To obtain it and run the benchmarks:
 
 ```bash
 # 1. Download covid.h5ad and icb.h5ad from the Google Drive folder linked in
@@ -81,9 +81,6 @@ python -m icmil.prepare_scrna
 python -m icmil.reproduce --tasks scrna_covid_pca25,scrna_icb_pca25
 python -m icmil.reproduce --tasks scrna_covid_pca50,scrna_icb_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm
 ```
-
-Evaluation follows the paper: 10 × stratified 10-fold CV over patients, one AUC per repetition on
-the pooled test predictions. Unlike the paper, the table's ± is the SEM, not the SD.
 
 ## Licence
 
