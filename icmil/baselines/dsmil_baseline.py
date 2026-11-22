@@ -144,6 +144,10 @@ class DSMILBaseline(nn.Module):
     trained with early stopping (``patience``) and the one reaching the lowest
     validation CE is kept. When ``val_fraction == 0`` the first entry of each grid
     is used and the model trains on all context bags for ``epochs``.
+
+    With ``refit=True`` the selected early-stopped checkpoint is discarded and one
+    model is retrained from scratch on all context bags (train + validation) at
+    the winning ``(lr, wd)`` for the winner's best epoch, with no early stopping.
     """
 
     def __init__(
@@ -161,6 +165,7 @@ class DSMILBaseline(nn.Module):
         batch_size: int | None = None,
         seed: int = 0,
         val_fraction: float = 0.1,
+        refit: bool = False,
     ) -> None:
         super().__init__()
         self.max_classes = max_classes
@@ -176,6 +181,7 @@ class DSMILBaseline(nn.Module):
         self.batch_size = batch_size
         self.seed = seed
         self.val_fraction = val_fraction
+        self.refit = refit
 
     def train(self, mode: bool = True) -> DSMILBaseline:
         return super().train(False)
@@ -200,12 +206,15 @@ class DSMILBaseline(nn.Module):
         wd: float,
         X_va: torch.Tensor | None = None,
         y_va: torch.Tensor | None = None,
-    ) -> tuple[DSMIL, float]:
+        max_epochs: int | None = None,
+    ) -> tuple[DSMIL, float, int]:
         """Train one DSMIL with Adam; early-stop on val CE when val data provided.
 
-        Returns the model at the best val CE checkpoint and that CE value.
-        When no val data is given, trains for the full ``epochs`` and returns inf.
+        Returns the model at the best val CE checkpoint, that CE value and the
+        1-indexed epoch of that checkpoint. When no val data is given, trains for
+        ``max_epochs`` (default ``epochs``) and returns inf and the epoch budget.
         """
+        budget = self.epochs if max_epochs is None else max_epochs
         torch.manual_seed(self.seed)
         model = self._make_model(in_dim, X.device)
         opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=wd)
@@ -214,9 +223,10 @@ class DSMILBaseline(nn.Module):
 
         best_val_ce = float("inf")
         best_state: dict = {}
+        best_epoch = budget
         no_improve = 0
 
-        for epoch in range(self.epochs):
+        for epoch in range(budget):
             model.train()
             perm = torch.randperm(n, device=X.device)
             for start in range(0, n, bs):
@@ -233,6 +243,7 @@ class DSMILBaseline(nn.Module):
                 if val_ce < best_val_ce:
                     best_val_ce = val_ce
                     best_state = {k: v.clone() for k, v in model.state_dict().items()}
+                    best_epoch = epoch + 1
                     no_improve = 0
                 else:
                     no_improve += 1
@@ -242,7 +253,7 @@ class DSMILBaseline(nn.Module):
 
         if best_state:
             model.load_state_dict(best_state)
-        return model.eval(), best_val_ce
+        return model.eval(), best_val_ce, best_epoch
 
     def _fit_predict(self, X_tr: torch.Tensor, y_tr: torch.Tensor, X_te: torch.Tensor) -> torch.Tensor:
         """Select (lr, wd) on val split (or use grid[0] when val_fraction=0) → log_softmax on test."""
@@ -262,14 +273,20 @@ class DSMILBaseline(nn.Module):
 
             best_val_ce = float("inf")
             best_model: DSMIL | None = None
+            best_hp: tuple[float, float, int] | None = None
             for lr, wd in itertools.product(self.lr_grid, self.wd_grid):
                 logger.info("DSMIL: training lr=%g wd=%g", lr, wd)
-                m, val_ce = self._train_model(X_tr_s, y_tr_s, in_dim, lr, wd, X_va, y_va)
+                m, val_ce, best_epoch = self._train_model(X_tr_s, y_tr_s, in_dim, lr, wd, X_va, y_va)
                 if val_ce < best_val_ce:
                     best_val_ce = val_ce
                     best_model = m
+                    best_hp = (lr, wd, best_epoch)
+            if self.refit and best_hp is not None:
+                lr, wd, best_epoch = best_hp
+                logger.info("DSMIL refit: lr=%g wd=%g for %d epochs on all context bags", lr, wd, best_epoch)
+                best_model, _, _ = self._train_model(X_tr, y_tr, in_dim, lr, wd, max_epochs=best_epoch)
         else:
-            best_model, _ = self._train_model(X_tr, y_tr, in_dim, self.lr_grid[0], self.wd_grid[0])
+            best_model, _, _ = self._train_model(X_tr, y_tr, in_dim, self.lr_grid[0], self.wd_grid[0])
 
         with torch.no_grad():
             return F.log_softmax(best_model(X_te), dim=-1)

@@ -57,12 +57,12 @@ It is also possible to run baselines and benchmarks that are not part of the ori
 
 - **Pooled-bag TabPFN** (`mean_tabpfn*`, `summ_tabpfn*`) runs by default. The v2.5 and v3.5 weights are gated: accept the licenses of `Prior-Labs/tabpfn_2_5` and `Prior-Labs/tabpfn_3_5` on Hugging Face and log in before the first run.
 - **ICMIL ensemble** also runs by default: each seed averaged over 16 random views of the data, no training needed (see `icmil/baselines/icmil_ensemble.py`).
-- **ABMIL / ACMIL refit** on the validation bags after model selection.
+- **ABMIL / ACMIL / DSMIL refit** on the validation bags after model selection.
 - **TAD**, where `tad_pca50` needs the 50-feature checkpoints.
 
 ```bash
 python -m icmil.reproduce --icmil-rows plain  # or ensemble: keep only one ICMIL row
-python -m icmil.reproduce --baselines abmil_refit,acmil_refit
+python -m icmil.reproduce --baselines abmil_refit,acmil_refit,dsmil_refit
 python -m icmil.reproduce --tasks tad_pca25
 python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm
 ```
