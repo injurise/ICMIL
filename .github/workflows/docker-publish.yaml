@@ -54,7 +54,7 @@ jobs:
           cache-to: type=gha
 
   apptainer:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # the Apptainer package depends on libfuse3-3, which newer runners lack
     needs: build
     permissions:
       contents: read
