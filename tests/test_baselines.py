@@ -355,7 +355,9 @@ class TestDSMILBaseline:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(("make", "method"), [(_tiny_abmil, "_train_model"), (_tiny_acmil, "_train_once")])
+@pytest.mark.parametrize(
+    ("make", "method"), [(_tiny_abmil, "_train_model"), (_tiny_acmil, "_train_once"), (_tiny_dsmil, "_train_model")]
+)
 @pytest.mark.parametrize("refit", [False, True])
 def test_refit_retrains_on_all_context_bags(train_test_tensors, make, method, refit) -> None:
     """``refit=True`` adds one fit on all context bags for the selected candidate's best epoch."""

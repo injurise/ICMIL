@@ -148,7 +148,8 @@ BASELINE_SPECS: dict[str, dict] = {
 # Refit variants (not in the paper table): same selection, then retrain on train + validation bags.
 BASELINE_SPECS["abmil_refit"] = dict(BASELINE_SPECS["abmil"], refit=True)
 BASELINE_SPECS["acmil_refit"] = dict(BASELINE_SPECS["acmil"], refit=True)
-REFIT_BASELINES = ("abmil_refit", "acmil_refit")  # opt-in by name, excluded from ``--baselines all``
+BASELINE_SPECS["dsmil_refit"] = dict(BASELINE_SPECS["dsmil"], refit=True)
+REFIT_BASELINES = ("abmil_refit", "acmil_refit", "dsmil_refit")  # opt-in by name, excluded from ``--baselines all``
 
 # The rows each selected ICMIL seed contributes: the model itself, and the model averaged over
 # random views of each dataset (``icmil.baselines.icmil_ensemble``, not part of the paper table).
@@ -218,6 +219,7 @@ def _baseline_classes() -> dict[str, type]:
         "summ_tabpfn35": SummTabPFN35Baseline,
         "abmil_refit": ABMILBaseline,
         "acmil_refit": ACMILBaseline,
+        "dsmil_refit": DSMILBaseline,
     }
 
 
