@@ -67,6 +67,13 @@ python -m icmil.reproduce --tasks tad_pca25
 python -m icmil.reproduce --tasks tad_pca50 --icmil-seeds zeqy97nm,awaqfzxd,ldsebntm
 ```
 
+#### Number of labeled bags
+
+```bash
+python -m icmil.bag_count
+python -m icmil.bag_count --benchmarks rsna_ich --bag-counts 25,100 --baselines none
+```
+
 ### Single-cell benchmarks
 
 For the COVID and ICB patient classification benchmarks (scRNA-seq) we use the preprocessed data of
